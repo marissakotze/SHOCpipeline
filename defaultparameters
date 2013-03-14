@@ -1,0 +1,26 @@
+#  List of trial apertures for aperture-corrected photometry [pixels]
+0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,10,12,15
+
+#  Background : inner annulus [pixels]
+15
+
+#  Background : outer annulus [pixels]
+20
+
+# Centroid box size [pixels]
+12
+
+# Maximum shift for centroid [pixels]
+5
+
+# Minimum distance for sources from the edge [pixels]
+20
+
+# Minimum separation distance between sources [pixels]
+10
+
+# The maximum magnitude error permitted [mag] for aperture-corrected photometry
+0.1
+
+# The maximum frame-to-frame drift allowed for centroids
+3

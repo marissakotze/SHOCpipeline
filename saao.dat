@@ -1,0 +1,5 @@
+ sexstr (@'utc-obs', 5)
+ observat = "saao"
+ mst = mst (@'date-obs', @'utc-obs', obsdb (observat, "longitude"))
+ airmass =  airmass (ra, dec, mst, obsdb (observat, "latitude"))
+ jd = julday (@'date-obs', @'utc-obs')
