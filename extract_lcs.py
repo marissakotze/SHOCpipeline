@@ -67,7 +67,6 @@ if __name__=='__main__':
        fromwindows = 0
 
    # Get the list of data entries in the IRAF output file that contain aperture-corrected photometry (apcor.out*)
-   # filenamelist = loadtxt(file,dtype="str",usecols=(0),delimiter=' ',unpack=True)
    badflag = 0
    try:
       datalist = numpy.loadtxt(file,dtype="str",unpack=True) 
@@ -91,16 +90,15 @@ if __name__=='__main__':
       print "../Photometry.py reduced"+cubenumber+" Y"
       print "Those outputs will help you determine which sources and apertures are to be eliminated (ones with 'INDEF' magnitude values)."
       sys.exit("")
-#      os.system("../construct_windows.py allcoo"+cubenumber+" "+startFITS+".fits "+str(edgemargin)+" "+str(crowdmargin))
-#      os.system("cp windows"+cubenumber+" windows")
-#      os.system("../Photometry.py reduced"+cubenumber+" Y <inputs"+cubenumber+" >outputs"+cubenumber)
-#      aperture =  raw_input("Please specify the size [pixels] of the aperture you want to extract:  ")
-#      os.system("../extract_txdump.py outputs"+cubenumber+' '+aperture)
-#      datalist = numpy.loadtxt("extracted_outputs"+cubenumber,dtype="str",unpack=True)
    else:
-      print "####################################################"
-      print "# The aperture-corrected photometry was SUCCESSFUL.#"
-      print "####################################################"
+      if file.count('apcor.out') > 0:
+          print "#####################################################"
+          print "# The aperture-corrected photometry was SUCCESSFUL. #"
+          print "#####################################################"
+      else:
+          print "##################################"
+          print "# The photometry was SUCCESSFUL. #"
+          print "##################################"
       if fromwindows == 0:
           print "X        Y"
           os.system('cat allcoo'+cubenumber)
@@ -129,7 +127,7 @@ if __name__=='__main__':
    # Open OUTPUT files
    lightcurves = open('lightcurves_based_on_'+startFITS.replace('.fits',''),'w')
 
-   # Determine the number of targets identified from the start FITS file (if not supplied in 'windows')
+   # Determine the number of targets identified from the start FITS file (if not supplied in a 'windows' file)
    for i in range(len(Fitsfiles)):
        Fitsfiles[i] = Fitsfiles[i].replace('.fits','').replace('.fit','').replace('.fi','').replace('.f','').rstrip('.')
        if fromwindows == 0:
@@ -145,6 +143,7 @@ if __name__=='__main__':
        os.exit()
 
    # Extract the HJD for each FITS file and save it, so the matrix now also contain HJD
+   # Determine the UTC values
    hjd = []
    utc = []
    for i in range(len(Fitsfiles)):
@@ -201,15 +200,13 @@ if __name__=='__main__':
           utcsecs = '0'+str(utcsecs)
        utcvalue = str(utchrs)+':'+str(utcmins)+':'+str(utcsecs)
        utcvalue = str(dateobs.year)+'-'+dateobsmonth+'-'+dateobsday+'T'+str(utchrs)+':'+str(utcmins)+':'+str(utcsecs)
-
-
        utc.append(utcvalue)
-#       print str(Fitsfiles[i]+'.fits'), str(int(hjdtemp))+'.'+str(hjdtemp-int(hjdtemp)).lstrip('0.')
+
        if not str(Fitsfiles[i]) == str(Fitsfiles[i-1]):          
           if flag == 0:
              flag = 1
-   # Separate the photometry data per target using X and Y centers (5 pixel error). Write the data blocks to a file from which it can be plotted
-   # margin = 3
+   # Separate the photometry data per target using X and Y centroid positions. Write the data blocks to a file from which it can be plotted.
+   # If no 'windows' file is present to indicate the sources of interest, the sources from the first image forms the source list.
    if fromwindows == 0:
        for k in range(startLOOP,startLOOP+targets):
            previousX = float(X[k])
@@ -221,6 +218,7 @@ if __name__=='__main__':
                    print >> lightcurves, k-startLOOP+1, X[j], Y[j], hjd[j], Mag[j], MagErr[j], Radius[j], Fitsfiles[j]+'.fits', utc[j] #Obstime[j]
                    previousX = float(X[j])
                    previousY = float(Y[j])
+   # If a 'windows' file is present, it indicates the list of sources
    elif fromwindows == 1:
        for k in range(targets):
            if targets > 1:
@@ -235,7 +233,6 @@ if __name__=='__main__':
            for j in range(len(Fitsfiles)):
                if float(X[j]) >= previousX-margin and float(X[j]) <= previousX+margin and float(Y[j]) >= previousY-margin and float(Y[j]) <= previousY+margin and Mag[j] not in ('INDEF') and MagErr[j] not in ('INDEF'):
                    print >> lightcurves, k+1, X[j], Y[j], hjd[j], Mag[j], MagErr[j], Radius[j], Fitsfiles[j]+'.fits',  utc[j]  #Obstime[j]
-#                   print 'Compared : X = '+str(previousX)+' ;  Y = '+str(previousY)+'   to   X = '+str(X[j])+' ;  Y = '+str(Y[j])+' on '+Fitsfiles[j]+'.fits'
                    previousX = float(X[j])
                    previousY = float(Y[j])
                    

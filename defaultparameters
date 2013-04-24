@@ -1,26 +1,39 @@
-#  List of trial apertures for aperture-corrected photometry [pixels]
+#  List of trial apertures for aperture-corrected photometry [pixels]   
+#    these should be smaller than the largest star's aperture
 0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,10,12,15
 
-#  Background : inner annulus [pixels]
+#  Background : inner annulus [pixels]   
+#    should be at least 1 more than largest trial aperture
 15
 
-#  Background : outer annulus [pixels]
+#  Background : outer annulus [pixels]   
+#    should at least 1 more than inner annulus, but preferably less than min separation distance between sources
 20
 
-# Centroid box size [pixels]
-12
+#  Centroid box size [pixels]   
+#    it should preferably not exceed the maximum trial aperture or minimum separation distance between sources
+15
 
-# Maximum shift for centroid [pixels]
+#  Maximum shift for centroid [pixels]   
+#    it should not exceed the minimum separation distance between sources
 5
 
-# Minimum distance for sources from the edge [pixels]
+#  Minimum distance for sources from the edge [pixels]   
+#    only used to eliminate edge sources if more than 10 sources are found
 20
 
-# Minimum separation distance between sources [pixels]
+#  Minimum separation distance between sources [pixels] 
+#    only used if you want to eliminate crowding if more than 10 sources are found  
 10
 
-# The maximum magnitude error permitted [mag] for aperture-corrected photometry
+#  The maximum magnitude error permitted [mag] for aperture-corrected photometry   
+#    points are ignorred if MagErr > this max limit
 0.1
 
-# The maximum frame-to-frame drift allowed for centroids
+#  The maximum frame-to-frame drift allowed for centroids [pixels]  
+#    should not exceed the minimum separation distance between extracted sources
+3
+
+#  The FWHM of the PSF [pixels]
+#    is 3 for good sampling and 1 for severe under-sampling (ideal sampling is PSF FWHM ~ 2.333 pixels)
 3

@@ -1,4 +1,4 @@
-Detail description of the SHOC data reduction pipeline is available in the Manual at: 
+Description of the SHOC data reduction pipeline is available in the Manual at: 
 
    http://www.saao.ac.za/~marissa/SHOCpipeline/SHOCpipeline.pdf
 
@@ -9,13 +9,13 @@ RECIPE for running the SHOC data reduction pipeline:
 =============================================================================================================================================
 
 -  IF you are at the TELESCOPE and you want to run the SHOC data reduction scripts, 
-   please sign in as ccd30/ccd40/ccd74 on LTSP.SUTH and create your own directory for your data reductions. 
+   please sign in as ccd30/ccd40/ccd74 on ASTRO.CAPE and create your own directory for your data reductions. 
    (You should move/copy it to wherever you want to permanently store it, after the completion of your observing run.)
 
-   ssh -XC ccd'T'@ltsp.suth.saao.ac.za
+   ssh -XC ccd'T'@astro.cape.saao.ac.za
    (where 'T' = 30/40/74 for 0.75m/1.0m/1.9m and the answer to the next question is: Saaoccd'T')
 
-   -  IF you have an account on LTSP.SUTH (not the same as LTSP.CAPE) or ASTRO.CAPE (not SALTASTRO but the old SAAOASTRO), 
+   -  IF you have an account on ASTRO.CAPE (not SALTASTRO but the old SAAOASTRO), 
       you can sign in and extract and run the scripts in your home directory.
 
 -  Create an 'iraf' directory in your own/home directory and run 'mkiraf' in it:
@@ -31,7 +31,7 @@ RECIPE for running the SHOC data reduction pipeline:
    wget 'http://www.saao.ac.za/~marissa/SHOCpipeline/SHOCpipeline.tar'
 
 -  All the PYTHON scripts and supporting data files are included in this TAR file. 
-   Extract it in your own directory on the LTSP.SUTH or your home directory on the ASTRO server:
+   Extract it in your own directory in /home/ccd'T'/ or your home directory on the ASTRO server:
 
    tar -xvf SHOCpipeline.tar
 
@@ -42,9 +42,10 @@ Scripts can only be run AFTER the data have been copied from the SHOC computer t
 
    mkdir <your subdirectory for reduction (per target/date or both)>
    cd <your subdirectory for reduction (per target/date or both)>
-   cp /data/'T'in/shocn'X'/CCYY/MMDD/CCYYMMDD.'CubeNr'.fits .
+   scp ccd'T'@ltsp.suth.saao.ac.za:/data/'T'in/shocn'X'/CCYY/MMDD/CCYYMMDD.'CubeNr(s)'.fits .
 
-   (using 'X' = awe/disbelief/horror and 'T' = 30/40/74 for 0.75m/1.0m/1.9m)
+   (using 'X' = awe/disbelief/horror and 'T' = 30/40/74 for 0.75m/1.0m/1.9m) 
+   The next answer is: Saaoccd'T'
 
 NOTE:	The required format for fits file names is:   CCYYMMDD.'CubeNr'.fits
 	The SHOCpipeline assumes this format and any deviation from it may result in errors.
@@ -56,9 +57,9 @@ For a quick look: (QuickLook.py)
 It automatically runs the full PHOTOMETRY pipeline (and subsequent LINUX scripts) for the user, with minimal user intervention required.
 It skips bias-correction, flat-fielding, JD, HJD and Airmass calculations to produce 'quick-and-dirty' raw lightcurves to give the user an indication of variability.
 
--  Run the following PER target and filter (which should reside in a subdirectory in the user's directory):
+-  Run the following PER target, binning and filter (which should reside in a subdirectory in the user's directory):
 
-   ../QuickLook.py <targetlist>           (if want to look at a few files -> place their names in the text file <targetlist>)
+   ../QuickLook.py <targetlist>           (if want to combine a few files in the lightcurve -> place their names in a text file <targetlist>)
    ../QuickLook.py <fitsfilename>         (if there is only one cube you want to look at -> enter its name directly)
 
    and answer the questions when prompted to do so.
@@ -77,11 +78,13 @@ OR
 Run the full functionality of the PHOTOMETRY pipeline: (SHOCpipeline.py)
 ======================================================
 
--  Run the following PER target and filter (which should reside in a subdirectory in the user's directory):
+-  Run the following PER target, binning and filter (which should reside in a subdirectory in the user's directory):
 
    ../SHOCpipeline.py
 
-   and answer the questions when prompted to do so.
+   and answer the questions when prompted to do so. 
+
+Note: Custom binning is currently not supported for flat and bias corrections.
 
 Currently this PYHTON script sets up the following LINUX scripts (which you can hack to run partially):
 ----------------------------------------------------------------

@@ -37,7 +37,7 @@ if __name__=='__main__':
       while col.count('')>=1: 
          col.remove('')
  
-      if s[n].count('ok\n') == 1:
+      if s[n].count('#') >= 1:
          flag = 1 
       if flag == 1 and len(col) == 10 and float(col[-1])==float(aperture):
          if col[7].count('INDEF') == 0:

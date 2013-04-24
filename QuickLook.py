@@ -25,15 +25,30 @@ if __name__=='__main__':
    print >> quicklookinputs, "../SHOCpipeline.py "+TARGETSfile+" 0 0 QuickLook 0 0 2000 0 0 0 88"
    quicklookinputs.close()
 
-   os.system("rm SHOCscript PHOTscript PLOTscript 0*fits > log")
+   os.system("rm SHOCscript PHOTscript PLOTscript 0*fits")
 
    try:
       os.system("../SHOCpipeline.py "+TARGETSfile+" 0 0 QuickLook 0 0 2000 0 0 0 88")
-      print "RUNNING....:    "+"./SHOCscript"
-      os.system("./SHOCscript")
-      print "RUNNING....:    "+"./PHOTscript"
-      os.system("./PHOTscript")
-      print "RUNNING....:    "+"./PLOTscript"
-      os.system("./PLOTscript")
+      try:
+         testSHOCscript = open('SHOCscript','r')
+         print "RUNNING....:    "+"./SHOCscript"
+         testSHOCscript.close()
+         os.system("./SHOCscript")
+      except IOError:
+         print "SHOCscript was not created. Please take note of the errors listed above."
+      try:
+         testPHOTscript = open('PHOTscript','r')
+         print "RUNNING....:    "+"./PHOTscript"
+         testPHOTscript.close()
+         os.system("./PHOTscript")
+      except IOError:
+         print "PHOTscript was not created. Please take note of the errors listed above."
+      try:
+         testPLOTscript = open('PLOTscript','r')
+         print "RUNNING....:    "+"./PLOTscript"
+         testPLOTscript.close()
+         os.system("./PLOTscript")
+      except IOError:
+         print "PLOTscript was not created. Please take note of the errors listed above."
    except IOError:
-      print "SHOCpipeline failed to execute. Please take note of the errors listed."
+      print "SHOCpipeline failed to execute. Please take note of the errors listed above."

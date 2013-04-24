@@ -57,21 +57,8 @@ if __name__=='__main__':
    print "# PLEASE be PATIENT: all the timing FITS headers are being corrected #"
    print "######################################################################"
    for x in range(len(filenamelist)):
-
-#   Correct the headers that were populated with FLAT's info during IRAF operation IMARITH (reinstate if this error occurs again for IMARITH)
-#      fits = pyfits.open(filenamelist[x].replace('c','').replace('b',''))
+      # Open fits file to be corrected
       fixedfits = pyfits.open(filenamelist[x],mode='update')
-#      fixedfits[0].header.update('OBJECT',fits[0].header['OBJECT'],'Target Name')
-#      fixedfits[0].header.update('RA_PNT',fits[0].header['RA_PNT'],'RA of source for Nominal pointing')
-#      fixedfits[0].header.update('DEC_PNT',fits[0].header['DEC_PNT'],'DEC of source for Nominal pointing')
-#      fixedfits[0].header.update('RA',fits[0].header['RA_PNT'],'RA of source')
-#      fixedfits[0].header.update('DEC',fits[0].header['DEC_PNT'],'DEC of source')
-#      fixedfits[0].header.update('EPOCH',fits[0].header['EPOCH'],'EPOCH')
-#      fixedfits[0].header.update('FRAME',fits[0].header['FRAME'],'End of 1st Exposure in Data Cube')
-#      fixedfits[0].header.update('ACT',fits[0].header['ACT'],'Integration cycle time')
-#      fixedfits[0].header.update('KCT',fits[0].header['KCT'],'Kinetic cycle time')
-#      fixedfits[0].header.update('EXPOSURE',fits[0].header['EXPOSURE'],'Total Exposure Time')
-#      fixedfits[0].header.update('RON',fits[0].header['RON'],'Read-out Noise')
 
       ##########################################
       #  Determine the correct TIMING headers: #
@@ -83,6 +70,13 @@ if __name__=='__main__':
       if trigger == 'Internal':
           # starts at x=0, so the first timing value is t0sec-(exposure+deadtime), which corrects for SHOC recording 'FRAME' at the end of the 1st exposure
           t = t0sec + float(exp)*(x-1)
+
+      ############################
+      # GPS triggered START only #
+      ############################
+      if trigger == 'External Start':
+          # starts at x=0 and 'FRAME' (GPS-start-time) is at time 0
+          t = t0sec + float(exp)*(x)
 
       #################
       # GPS triggered #
