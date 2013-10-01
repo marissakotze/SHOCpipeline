@@ -23,34 +23,13 @@ savedmasterbias = str(file).split('bias')[0]+'Bias'+'.fits'
 
 immatch.imcombine.input = '@'+file
 immatch.imcombine.output = masterbias                               
-immatch.imcombine.combine = "average"
+immatch.imcombine.combine = "median"
 immatch.imcombine.reject = "none"
 immatch.imcombine.mode = "h"
 immatch.imcombine()
 
-#imutil.minmax.images = masterbias
-#imutil.minmax.update = "yes"
-#imutil.minmax.mode = "h" 
-#imutil.minmax()
-
 fits = pyfits.open(masterbias,mode='update')
 fits[0].header.update('OBJECT',str(file).replace('bias',' ')+"MASTER BIAS")
 fits.flush()
-#datamin = float(fits[0].header['DATAMIN'])
-#datamax = float(fits[0].header['DATAMAX'])
-#dataaverage = (datamin+datamax)/2
-
-#imutil.imarith.operand1 = masterbias
-#imutil.imarith.op = "/"
-#imutil.imarith.operand2 = str(dataaverage)
-#imutil.imarith.result = "c"+masterbias
-#imutil.imarith.title = "Normalized " +str(file).replace('bias',' ')+ " Master Bias"
-#imutil.imarith.mode = "h"
-#imutil.imarith()
-
-#imutil.minmax.images = "c"+masterbias
-#imutil.minmax.update = "yes"
-#imutil.minmax.mode = "h" 
-#imutil.minmax()
 
 os.system('mv '+masterbias+' '+savedmasterbias)

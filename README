@@ -12,7 +12,7 @@ RECIPE for running the SHOC data reduction pipeline:
    please sign in as ccd30/ccd40/ccd74 on ASTRO.CAPE and create your own directory for your data reductions. 
    (You should move/copy it to wherever you want to permanently store it, after the completion of your observing run.)
 
-   ssh -XC ccd'T'@astro.cape.saao.ac.za
+   ssh -XC ccd'T'@astro.cape.saao.ac.za			(but from a remote location, you should use:  ssh -XC ccd'T'@ssh.saao.ac.za)
    (where 'T' = 30/40/74 for 0.75m/1.0m/1.9m and the answer to the next question is: Saaoccd'T')
 
    -  IF you have an account on ASTRO.CAPE (not SALTASTRO but the old SAAOASTRO), 
@@ -28,6 +28,7 @@ RECIPE for running the SHOC data reduction pipeline:
 -  Go back up into your own/home directory and download the SHOC data reduction scripts by typing in the command line:
 
    cd ../
+   rm SHOCpipeline.tar     (only needed if you've downloaded it before)
    wget 'http://www.saao.ac.za/~marissa/SHOCpipeline/SHOCpipeline.tar'
 
 -  All the PYTHON scripts and supporting data files are included in this TAR file. 

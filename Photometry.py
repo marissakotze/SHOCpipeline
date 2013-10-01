@@ -131,10 +131,14 @@ if __name__=='__main__':
       if promtpardefault in ('Y','y'):
          os.system("cp ../defaultparameters parameters")
       else:
-         print "#################################################################################################"
-         print "#  You have elected to quit the program and edit the 'parameters' file before running it again. #"
-         print "#################################################################################################"
-         sys.exit()
+         print "##################################################################################################"
+         #print "#  You have elected to quit the program and edit the 'parameters' file before running it again. #"
+         print "#  Adjust the parameters in the open 'gedit' window. SAVE and CLOSE it to continue further here. #"
+         print "##################################################################################################"
+         os.system("gedit parameters")
+         #sys.exit()
+
+   os.system('cp parameters parameters'+cubenumber)
 
    # Extract parameter values from the 'parameters' file (which the user should edit with the appropriate values for their field)
    parameters = numpy.loadtxt('parameters',dtype="str")

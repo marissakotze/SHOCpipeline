@@ -39,7 +39,7 @@ if __name__=='__main__':
    startTIME = str(minTIME)
    maxTIME = max(datalist[3])
    endTIME = str(maxTIME)
-   if minTIME > 100000:
+   if minTIME > 1000000:
        startTIMEsec = str((minTIME-minTIME)*24*60*60)
        endTIMEsec = str((maxTIME-minTIME)*24*60*60)
        factor = 24*60*60
@@ -149,7 +149,11 @@ if __name__=='__main__':
           print >> MULTIscript, 'gnuplot<' + str('MULTIgnuplotscript'+str(i)+'_'+file) 
           print >> MULTIgnuplotscript, "set output 'Lightcurves_"+str(i)+'_'+file+".eps'"
           print >> MULTIgnuplotscript, "set terminal postscript portrait" 
-          print >> MULTIgnuplotscript, "set multiplot layout 11,1"
+          if file.count('differential') > 0:
+              print >> MULTIgnuplotscript, "set multiplot layout 11,1 title 'DIFFERENTIAL lightcurves for "+file.replace('differential_lightcurves_based_on_','')[:-5]+".fits'"
+          else:
+              print >> MULTIgnuplotscript, "set multiplot layout 11,1 title 'RAW lightcurves for "+file.replace('lightcurves_based_on_','')[:-5]+".fits'"
+          #print >> MULTIgnuplotscript, "set multiplot layout 11,1"
           print >> MULTIgnuplotscript, "set tmargin 0.25"
           print >> MULTIgnuplotscript, "set bmargin 0"
           print >> MULTIgnuplotscript, "set lmargin at screen 0.15"
@@ -161,12 +165,12 @@ if __name__=='__main__':
               print  '###################################################################################################################################'
               print  'To view the DIFFERENTIAL lightcurves, type:        gs ' + 'Lightcurves_'+str(i)+'_'+file+'.eps &'
               print  '###################################################################################################################################'
-              print >> MULTIgnuplotscript, "set title 'DIFFERENTIAL lightcurves for "+file.replace('differential_lightcurves_based_on_','')[:-5]+".fits'"
+              #print >> MULTIgnuplotscript, "set title 'DIFFERENTIAL lightcurves for "+file.replace('differential_lightcurves_based_on_','')[:-5]+".fits'"
           else:
               print  '########################################################################################################################'
               print  'To view RAW lightcurves, type:        gs ' + 'Lightcurves_'+str(i)+'_'+file+'.eps &'
               print  '########################################################################################################################'
-              print >> MULTIgnuplotscript, "set title 'RAW lightcurves for "+file.replace('lightcurves_based_on_','')[:-5]+".fits'"
+              #print >> MULTIgnuplotscript, "set title 'RAW lightcurves for "+file.replace('lightcurves_based_on_','')[:-5]+".fits'"
           print >> MULTIgnuplotscript, "set ylabel '  ' font "+'"Helvetica,14"'       
           print >> MULTIgnuplotscript, "set label 'Instrumental Magnitude' font "+'"Helvetica,14" at screen 0.02,0.5 rotate by 90'
 

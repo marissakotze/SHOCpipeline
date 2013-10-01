@@ -89,6 +89,42 @@ def checkFILEname(file,FILEtype):
          file = raw_input("Invalid file name! Please supply a valid "+FILEtype+" file name in this directory:  ")
    return file
 
+#################################################
+# Function: check user input for Y/N questions  #
+#################################################
+
+def checkYNinput(variable):
+   """ Prompt the user again if invalid input was supplied  """
+   while variable not in ('Y','y','N','n',''):
+      variable = raw_input("Invalid input. The format is Y or N? ")   
+   # return values to main program 
+   return variable
+
+#################################################
+# Function: check validity of master FLAT/BIAS  #
+#################################################
+
+def checkBINNING(suppliedfile,FILEtype,hbin,vbin):
+   """ Binning for target files and supplied master BIAS/FLAT must be the same. Allow the user to choose to continue regardless  """
+   suppliedfile = checkFILEname(suppliedfile,FILEtype)
+   fits = pyfits.open(suppliedfile)
+   hbinsupplied = str(fits[0].header['HBIN'])
+   vbinsupplied = str(fits[0].header['VBIN'])
+   hbin = str(int(hbin))
+   vbin = str(int(vbin))
+   if hbinsupplied != hbin or vbinsupplied != vbin:
+      print '                                                                                                       '
+      print '#########################################################################################################'
+      print ' WARNING: Target files are binned at '+hbin+'x'+vbin+' but '+FILEtype+' at '+hbinsupplied+'x'+vbinsupplied
+      print '          Subsequently '+TARGETSdatalist[j]+' will NOT be '+FILEtype.strip('master ')+' corrected!'
+      print '#########################################################################################################'
+      userprompt = raw_input("Do you wish to continue regardless? (Y/N):  ")
+      userprompt = checkYNinput(userprompt)
+      if userprompt not in ('Y','y'):
+         sys.exit()
+      suppliedfile = 'dud'
+   # return values to main program 
+   return suppliedfile
 ####################
 ##################
 #  MAIN PROGRAM  #
@@ -131,6 +167,16 @@ if __name__=='__main__':
       telescope = sys.argv[9]
       instrument = sys.argv[10]
       filters = sys.argv[11]
+
+   # Open file for saving inputs given to SHOCpipeline.py
+   SHOCpipelineINPUTS = open('SHOCpipelineINPUTS','w')
+   print >> SHOCpipelineINPUTS, "../SHOCpipeline.py "+TARGETSfile+" "+FLATSfile+" "+BIASfile+" "+targetname+" "+ra+" "+dec+" "+epoch+" "+site+" "+telescope+" "+instrument+" "+filters
+
+   if TARGETSfile.count('sort')>0 and FLATSfile=='0' and BIASfile=='0':
+      tooBIGexecuting = 1
+   else:
+      tooBIGexecuting = 0
+
    
    if ra == '0' and dec == '0' and TARGETSfile != '0' and targetname != 'QuickLook':
       print '                                                                                                                    '
@@ -166,13 +212,12 @@ if __name__=='__main__':
    masterflats = 'N'
    dophotometry = 'N'
 
-   if targetname != 'QuickLook': 
+   if targetname != 'QuickLook' and tooBIGexecuting == 0: 
        if FLATSfile == '0':
            makemasterflats = 'N'
            print 'There were no raw FLATS supplied.'
            masterflats = raw_input("Are the appropriate MASTER FLATS available? (Y/N):  ")
-           while masterflats not in ('Y','y','N','n',''):
-               masterflats = raw_input("Invalid input. Are the appropriate MASTER FLATS available? (Y/N):  ")
+           masterflats = checkYNinput(masterflats)
            if masterflats in ('Y','y'):
                masterflats = 'Y'
            else:
@@ -207,13 +252,13 @@ if __name__=='__main__':
                singlefilename = str(TARGETSdatalist)
                TARGETSdatalist = []
                TARGETSdatalist.append(singlefilename)
-   if targetname != 'QuickLook':
+
+   if targetname != 'QuickLook' and tooBIGexecuting == 0:
        if BIASfile == '0':
            makemasterbias = 'N'
            print 'There were no raw BIAS frames supplied.'
            masterbias = raw_input("Are the appropriate MASTER BIAS files available? (Y/N):  ")
-           while masterbias not in ('Y','y','N','n',''):
-               masterbias = raw_input("Invalid input. Are the appropriate MASTER BIAS files available? (Y/N):  ")
+           masterbias = checkYNinput(masterbias)
            if masterbias in ('Y','y'):
                masterbias = 'Y'
            else:
@@ -398,6 +443,8 @@ if __name__=='__main__':
              print >> SHOCscript, 'rm rename*'
          if tooBIGflag == 1 and tooBIGisolated == 0:
              print >> tooBIG, "../slice.py "+TARGETSdatalist[i]
+             FLATSfile = '0'
+             BIASfile = '0'
              print >> tooBIG, "../SHOCpipeline.py sort"+cubenumber+" "+FLATSfile+" "+BIASfile+" '"+targetname+"' "+ra+" "+dec+" "+epoch+" "+site+" "+telescope+" "+instrument+" "+filters
              print >> tooBIG, 'rm SHOCscript PHOTscript'      
              print >> tooBIG, "cp sort"+cubenumber+" splittedtarget"+cubenumber
@@ -442,7 +489,11 @@ if __name__=='__main__':
             flatfiles.append(flatfilename)
             vbinflat.append(vbinflattemp)
             hbinflat.append(hbinflattemp)
-            print >> SHOCscript, "../MasterFlats.py "+ flatfilename+' ' +str(filters)
+            if tooBIGflag == 0:
+               print >> SHOCscript, "../MasterFlats.py "+ flatfilename+' ' +str(filters)
+            else:
+               os.system("../MasterFlats.py "+ flatfilename+' ' +str(filters))
+            masterflats = 'Y'
 
       # Make a list containing only the individual FLAT fits files:
       os.system('cat splittedflats* > sortedflats')
@@ -460,9 +511,6 @@ if __name__=='__main__':
                print >> flatfile, splittedFLATSlist[j]
 
 
-   #######################################
-   # Create MASTER BIAS from RAW bias: #
-   #######################################
    #######################################
    # Create MASTER BIAS from RAW bias: #
    #######################################
@@ -502,7 +550,11 @@ if __name__=='__main__':
             biasfiles.append(biasfilename)
             vbinbias.append(vbinbiastemp)
             hbinbias.append(hbinbiastemp)
-            print >> SHOCscript, "../MasterBias.py "+ biasfilename
+            if tooBIGflag == 0:
+               print >> SHOCscript, "../MasterBias.py "+ biasfilename
+            else:
+               os.system("../MasterBias.py "+ biasfilename)
+            masterbias = 'Y'
 
       # Make a list containing only the individual BIAS fits files:
       os.system('cat splittedbias* > sortedbias')
@@ -536,7 +588,7 @@ if __name__=='__main__':
       for j in range(len(TARGETSdatalist)):
          print >> SHOCscript, "#----------------------------------------------------------------"
          cubenumber = str(TARGETSdatalist[j]).split('.')[1]
-         observationdate = TARGETSdatalist[i].split('.')[0]
+         observationdate = str(TARGETSdatalist[j]).split('.')[0]
 
          ######################################
          # Subtract Master Bias from umages:  #
@@ -551,35 +603,49 @@ if __name__=='__main__':
             biasstring = 'b'
             biased = 'Y'
             defaultBIAS = str(int(vbincube[j]))+'x'+str(int(hbincube[j]))+"Bias"+".fits"
-            suppliedmasterbias = raw_input("Supply the name of the appropriate master BIAS file (default: "+defaultBIAS+"):  ")
+            if CUBEtooBIGflag[j] == 0 and tooBIGexecuting == 0:
+               suppliedmasterbias = raw_input("Supply the name of the appropriate master BIAS file (default: "+defaultBIAS+"):  ")
+            else:
+               suppliedmasterbias = ''
             if suppliedmasterbias == '':
                suppliedmasterbias = defaultBIAS
-            if CUBEtooBIGflag[j] == 0:               
-               print >> SHOCscript, "../BiasCorrection.py "+"splittedtarget"+cubenumber+" "+suppliedmasterbias               
+            if CUBEtooBIGflag[j] == 0:
+               suppliedmasterbias = checkFILEname(suppliedmasterbias,'master BIAS')
+               suppliedmasterbias = checkBINNING(suppliedmasterbias,'master BIAS',hbincube[j],vbincube[j])
+            if suppliedmasterbias != 'dud':
+               if CUBEtooBIGflag[j] == 0:               
+                  print >> SHOCscript, "../BiasCorrection.py "+"splittedtarget"+cubenumber+" "+suppliedmasterbias               
+               else:
+                  print >> tooBIG, "../BiasCorrection.py splittedtarget"+cubenumber+" "+suppliedmasterbias
             else:
-               print >> tooBIG, "../BiasCorrection.py splittedtarget"+cubenumber+" "+suppliedmasterbias
+               biased = 'N'
          else: biasstring = ''
 
          if biased == 'Y':
             if CUBEtooBIGflag[j] == 0:
                print >> SHOCscript, 'awk '+"'"+'{print "b'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
-               startFITSfile = "bs"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001"
+               startFITSfile = "bs"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001.fits"
             else:
                print >> tooBIG, "awk '{print "+'"b"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
-               print >> tooBIG, "rm s"+TARGETSdatalist[j].replace('fits','')+"*"
          else:
                print >> SHOCscript, 'awk '+"'"+'{print "'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
-               startFITSfile = "s"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001"
+               startFITSfile = "s"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001.fits"
 
-         if biased == 'N' and targetname != 'QuickLook':
+         if biased == 'N' and targetname != 'QuickLook' and tooBIGexecuting == 0:
                print '                                                                                                       '
                print '#########################################################################################################'
-               print ' WARNING: Since NO appropriate MASTER BIAS were found, '+TARGETSdatalist[j]+' will NOT be bias-corrected!'
+               print ' WARNING: Since NO appropriate BIAS files were found, '+TARGETSdatalist[j]+' will NOT be bias-corrected!'
                print '#########################################################################################################'
+               if BIASfile != '0':
+                  userprompt = raw_input("Do you wish to continue regardless? (Y/N):  ")
+                  userprompt = checkYNinput(userprompt)
+                  if userprompt not in ('Y','y'):
+                     sys.exit()               
 
          ###################################
          # Divide images by Master Flats:  #
          ###################################
+
          for i in range(len(flatfiles)):
             if vbincube[j] == vbinflat[i] and hbincube[j] == hbinflat[i]:
                flatfielded = 'Y'
@@ -589,54 +655,79 @@ if __name__=='__main__':
             flatstring = 'c'
             flatfielded = 'Y'
             defaultFLAT = 'c'+str(int(vbincube[j]))+'x'+str(int(hbincube[j]))+"Flat"+str(filters)+".fits"
-            suppliedmasterflat = raw_input("Supply the name of the appropriate master FLAT file (default: "+defaultFLAT+"):  ")
+            if CUBEtooBIGflag[j] == 0 and tooBIGexecuting == 0:
+               suppliedmasterflat = raw_input("Supply the name of the appropriate master FLAT file (default: "+defaultFLAT+"):  ")
+            else:
+               suppliedmasterflat = ''
             if suppliedmasterflat == '':
                suppliedmasterflat = defaultFLAT
             if CUBEtooBIGflag[j] == 0:
-               print >> SHOCscript, "../FlatFielding.py "+"reduced"+cubenumber+ " "+suppliedmasterflat
+               suppliedmasterflat = checkFILEname(suppliedmasterflat,'master FLAT')
+               suppliedmasterflat = checkBINNING(suppliedmasterflat,'master FLAT',hbincube[j],vbincube[j])   
+            if suppliedmasterflat != 'dud':         
+               if CUBEtooBIGflag[j] == 0:
+                  print >> SHOCscript, "../FlatFielding.py "+"reduced"+cubenumber+ " "+suppliedmasterflat
+               else:
+                  print >> tooBIG, "../FlatFielding.py reduced"+cubenumber+" "+suppliedmasterflat 
             else:
-               print >> tooBIG, "../FlatFielding.py reduced"+cubenumber+" "+suppliedmasterflat
-               print >> tooBIG, "awk '{print "+'"cb"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
-               print >> tooBIG, "rm bs"+TARGETSdatalist[j].replace('fits','')+"* s"+TARGETSdatalist[j].replace('fits','')+"*"               
+               flatfielded = 'N'           
          else: flatstring = ''
 
-         if flatfielded == 'N' and targetname != 'QuickLook':
-            print '                                                                                                       '
-            print '#########################################################################################################'
-            print ' WARNING: Since NO appropriate MASTER FLATS were found, '+TARGETSdatalist[j]+' will NOT be flat-fielded!'
-            print '#########################################################################################################'
+         if flatfielded == 'N' and targetname != 'QuickLook' and tooBIGexecuting == 0:
+               print '                                                                                                       '
+               print '#########################################################################################################'
+               print ' WARNING: Since NO appropriate FLAT files were found, '+TARGETSdatalist[j]+' will NOT be flat-fielded!'
+               print '#########################################################################################################'
+               if FLATSfile != '0':
+                  userprompt = raw_input("Do you wish to continue regardless? (Y/N):  ")
+                  userprompt = checkYNinput(userprompt)
+                  if userprompt not in ('Y','y'):
+                     sys.exit()
 
          ################################################
          # Determine the filenames of the reduced files #
          ################################################
          if flatfielded == 'Y' and biased == 'Y':
+            if CUBEtooBIGflag[j] == 0:
                print >> SHOCscript, 'awk '+"'"+'{print "cb'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
-               startFITSfile = "cbs"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001"
-               print >> SHOCscript, 'rm '+startFITSfile.replace('.0001','.*').replace('cbs','bs')+' '+startFITSfile.replace('.0001','.*').replace('cbs','s')
+               startFITSfile = "cbs"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001.fits"
+               print >> SHOCscript, 'rm '+startFITSfile.replace('.0001.fits','.*').replace('cbs','bs')+' '+startFITSfile.replace('.0001.fits','.*').replace('cbs','s')
+            else:
+               print >> tooBIG, "awk '{print "+'"cb"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
+               #print >> tooBIG, "rm bs"+TARGETSdatalist[j].replace('fits','')+"* s"+TARGETSdatalist[j].replace('fits','')+"*"   
          elif flatfielded == 'N' and biased == 'Y':
+            if CUBEtooBIGflag[j] == 0:
                print >> SHOCscript, 'awk '+"'"+'{print "b'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
-               startFITSfile = "bs"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001"
-               print >> SHOCscript, 'rm '+startFITSfile.replace('.0001','.*').replace('bs','s')
+               startFITSfile = "bs"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001.fits"
+               print >> SHOCscript, 'rm '+startFITSfile.replace('.0001.fits','.*').replace('bs','s')
+            else:
+               print >> tooBIG, "awk '{print "+'"b"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
+               #print >> tooBIG, "rm s"+TARGETSdatalist[j].replace('fits','')+"*" 
          elif flatfielded == 'N' and biased == 'N':
             if CUBEtooBIGflag[j] == 0:
                print >> SHOCscript, 'awk '+"'"+'{print "'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
-               startFITSfile = "s"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001"
+               startFITSfile = "s"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001.fits"
             else:
                print >> tooBIG, "cp sort"+cubenumber+" reduced"+cubenumber
          elif flatfielded == 'Y' and biased == 'N':
+            if CUBEtooBIGflag[j] == 0:
                print >> SHOCscript, 'awk '+"'"+'{print "c'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
-               startFITSfile = "cs"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001"
-               print >> SHOCscript, 'rm '+startFITSfile.replace('.0001','.*').replace('cs','s')
-
-         startFITSfiles.append(startFITSfile)
+               startFITSfile = "cs"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001.fits"
+               print >> SHOCscript, 'rm '+startFITSfile.replace('.0001.fits','.*').replace('cs','s')
+            else:
+               print >> tooBIG, "awk '{print "+'"c"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
+               #print >> tooBIG, "rm s"+TARGETSdatalist[j].replace('fits','')+"*"
+         
+         if CUBEtooBIGflag[j] == 0:
+            startFITSfiles.append(startFITSfile)
 
          #######################################
          # Write timing information to HEADERS #
          #######################################
          if CUBEtooBIGflag[j] == 0:
-            print >> SHOCscript, "../time.py "+"reduced"+cubenumber
+            print >> SHOCscript, "../frametime.py "+"reduced"+cubenumber
          else:
-            print >> tooBIG, "../time.py reduced"+cubenumber
+            print >> tooBIG, "../frametime.py reduced"+cubenumber
          # Set JD, Airmass and HJD in HEADERS
          if targetname != 'QuickLook':
             if CUBEtooBIGflag[j] == 0:
@@ -675,7 +766,18 @@ if __name__=='__main__':
             print >> tooBIG, 'mv temptemp reduced'+cubenumber
             print >> tooBIG, 'rm temp'
             print >> tooBIG, 'mkdir ReducedData'
-            print >> tooBIG, 'mv *s*.'+cubenumber+'.*.fits ReducedData'
+            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[0-1]*.fits ReducedData'
+            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[2-3]*.fits ReducedData'
+            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[4-5]*.fits ReducedData'
+            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[6-7]*.fits ReducedData'
+            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[8-9]*.fits ReducedData'
+            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.*.fits ReducedData'
+            print >> tooBIG, 'rm *s*.'+cubenumber+'.0[0-1]*.fits'
+            print >> tooBIG, 'rm *s*.'+cubenumber+'.0[2-3]*.fits'
+            print >> tooBIG, 'rm *s*.'+cubenumber+'.0[4-5]*.fits'
+            print >> tooBIG, 'rm *s*.'+cubenumber+'.0[6-7]*.fits'
+            print >> tooBIG, 'rm *s*.'+cubenumber+'.0[8-9]*.fits'
+            print >> tooBIG, 'rm *s*.'+cubenumber+'.*.fits'
             print >> tooBIG, 'echo "########################################################################################"'
             print >> tooBIG, 'echo "# Individual FITS files with corrected headers are saved in the ReducedData folder.    #"'
             if targetname != 'QuickLook':
@@ -699,13 +801,14 @@ if __name__=='__main__':
 #               print >> tooBIG, "../extract_lcs.py apcor.out"+cubenumber+" "+flatstring+biasstring+"s"+TARGETSdatalist[j].replace('fits','')+"0001.fits"
 #               print >> tooBIG, "../plot_lcs.py lightcurves_based_on_"+flatstring+biasstring+"s"+TARGETSdatalist[j].replace('fits','')+"0001"
 #            print >> tooBIG, "#----------------------------------------------------------------"
+            print >> tooBIG, "./PLOTscript"
             tooBIG.close()
             os.system('chmod a+x tooBIG')
             os.system('rm SHOCscript PHOTscript')
             os.system('cp tooBIG tooBIG'+cubenumber)
             print "######################################################################################################################"
             print "The FITS file "+TARGETSdatalist[j] +" is too large. It may be handled separately by running:           ./tooBIG"+cubenumber
-            if j >0:
+            if len(TARGETSdatalist) > 1:
                print "Remove it from '"+TARGETSfile+"' and re-run the script for the rest of the files in the list. "
             print "######################################################################################################################"
             sys.exit()
@@ -735,7 +838,7 @@ if __name__=='__main__':
 #         print >> PLOTscript, "#----------------------------------------------------------------"
 
       # Comments on screen to prompt the user on next steps
-      if targetname != 'QuickLook':
+      if targetname != 'QuickLook' and tooBIGexecuting == 0:
          print '                                                                                                       '
          print "###########################################################################################"
          print "Run the LINUX script that does all PRE-REDUCTIONS and FITS header corrections by typing:"
