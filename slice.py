@@ -9,7 +9,13 @@ if __name__=='__main__':
    else:
       file = sys.argv[1]
 
-cubenumber = file.split('.')[1]
+#cubenumber = file.split('.')[1]
+cubenumberlist = file.split('.')
+if len(cubenumberlist)==3:
+   cubenumber = cubenumberlist[1]
+else:
+   cubenumber = cubenumberlist[1]+cubenumberlist[2]
+
 date = file.split('.')[0]
 
 import pyraf

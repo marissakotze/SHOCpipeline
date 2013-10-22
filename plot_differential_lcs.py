@@ -27,6 +27,7 @@ if __name__=='__main__':
 
    # Open inputfile
    DIFFscript = open('DIFFscript','w')
+   print >> DIFFscript, '#! /bin/bash'
    datalist = numpy.loadtxt(file.replace('differential_',''),dtype="float",usecols=(0,1),unpack=True)
    comparisonlist = []
    if complist == 'ALL':
@@ -41,6 +42,7 @@ if __name__=='__main__':
    os.system("rm "+file+"_diffLC*")
    print "RUNNING....:    "+"../extractSTAR_SHOClc.py "+file+" "+starnumber+" "+complist
    os.system("../extractSTAR_SHOClc.py "+file+" "+starnumber+" "+complist)
+   print >> DIFFscript, "../extractSTAR_SHOClc.py "+file+" "+starnumber+" "+complist
    if len(comparisonlist) >1:
        print "##################################################################################################################"
        print "# The differential lightcurve for the target was produced and they will now be produced for all the comparisons. #"
@@ -51,12 +53,16 @@ if __name__=='__main__':
            finalcomplist = str(trimcomplist).replace(' ','').lstrip('[').rstrip(']').replace("'",'')
            print "RUNNING....:    "+"../extractSTAR_SHOClc.py "+file+" "+str(star)+" "+finalcomplist
            os.system("../extractSTAR_SHOClc.py "+file+" "+str(star)+" "+finalcomplist)
+           print >> DIFFscript, "../extractSTAR_SHOClc.py "+file+" "+str(star)+" "+finalcomplist
    else:
        print "#################################################################"
        print "# Only the differential lightcurve for the target was produced. #"
        print "#################################################################"
    os.system("cat "+file+"_diffLC* > differential_"+file)
+   print >> DIFFscript, "cat "+file+"_diffLC* > differential_"+file
    print "RUNNING....:    "+"../plot_lcs.py differential_"+file
    os.system("../plot_lcs.py differential_"+file)
+   print >> DIFFscript, "../plot_lcs.py differential_"+file
+   os.system("chmod a+x DIFFscript")
 #   os.system("chmod a+x ./MULTIscript_differential_"+file)
 #   os.system("./MULTIscript_differential_"+file)

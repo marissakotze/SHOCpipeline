@@ -325,9 +325,16 @@ if __name__=='__main__':
       tooBIGopened = 0
       tooBIGisolated = 0
       for i in range(len(TARGETSdatalist)): 
-         cubenumber = TARGETSdatalist[i].split('.')[1]
+         cubenumberlist = TARGETSdatalist[i].split('.')
+         if TARGETSdatalist[i].count('_')==0:
+            cubenumber = cubenumberlist[1]
+         else:
+            cubenumber = cubenumberlist[1]+cubenumberlist[2]
          try:
-            GPSstart, increment = numpy.loadtxt('GPSinfo'+cubenumber,dtype="str", unpack=True)
+            if cubenumber.count('_') > 0:
+               GPSstart, increment = numpy.loadtxt('GPSinfo'+cubenumber.split('_')[0],dtype="str", unpack=True)
+            else:
+               GPSstart, increment = numpy.loadtxt('GPSinfo'+cubenumber,dtype="str", unpack=True)
             GPSflag = 1
          except IOError, e: 
             GPSflag = 0
@@ -359,6 +366,7 @@ if __name__=='__main__':
                     print "The 'EXPOSURE', 'ACT' and 'KCT' fits headers will now be updated with the value:   "+str(exposuresec)+ "   in seconds [s]"
                     GPSinfo = open('GPSinfo'+cubenumber,'w')
                     print >> GPSinfo, GPSstart, exposuresec
+                    GPSinfo.close()
                  else:
                     exposuresec = increment
                     fits[0].header.update('FRAME',GPSstart,'GPS start time of the cube')
@@ -383,6 +391,7 @@ if __name__=='__main__':
                 exposureseconds = float(fits[0].header['EXPOSURE']) + 0.00676
                 GPSinfo = open('GPSinfo'+cubenumber,'w')
                 print >> GPSinfo, GPSstart, exposureseconds
+                GPSinfo.close()
              else:
                 exposureseconds = increment
                 fits[0].header.update('FRAME',GPSstart,'GPS start time of the cube')
@@ -398,20 +407,20 @@ if __name__=='__main__':
          trigger.append(str(fits[0].header['TRIGGER']))
 
          for j in range(len(serialnr)): 
-             if float(fits[0].header['SENSITIVITY'])== float(sensitivity[j]) and float(fits[0].header['SERNO'])== float(serialnr[j]):
+             if float(fits[0].header['HIERARCH SENSITIVITY'])== float(sensitivity[j]) and float(fits[0].header['SERNO'])== float(serialnr[j]):
                  fits[0].header.update('RON',readnoise[j],'Read-out Noise')
                  tempreadnoise = readnoise[j]
 #             elif float(fits[0].header['SENSITIVITY']) == float(0)  and str(fits[0].header['SERNO']) == serialnr[j] and str(fits[0].header['PREAMP'])== preAmp[j] and float(fits[0].header['READTIME']) == float(readtime[j]) and fits[0].header['OUTPTAMP'] == mode[j]:
              elif str(fits[0].header['SERNO']) == serialnr[j] and str(fits[0].header['PREAMP'])== preAmp[j] and float(fits[0].header['READTIME']) == float(readtime[j]) and fits[0].header['OUTPTAMP'] == mode[j]:
                  fits[0].header.update('RON',readnoise[j],'Read-out Noise') 
                  tempreadnoise = readnoise[j]
-                 fits[0].header.update('HIERARCH SENSITIVITY',sensitivity[j],'Sensitivity of 0 replaced from RON Table')  
+                 fits[0].header.update('SENSITIV',sensitivity[j],'Sensitivity of 0 replaced from RON Table')  
 
          if tempreadnoise == 0:
              print "WARNING: the Read-out noise value could not be determined for: "+ str(TARGETSdatalist[i])
          # for CONVENTIONAL mode the fits-header 'GAIN'=0 and the real value for GAIN is in fits-header 'SENSITIVITY' [e/ADU]
          if fits[0].header['OUTPTAMP'] == 'Conventional':
-             fits[0].header.update('GAIN',fits[0].header['SENSITIVITY'], 'Replaced 0 with actual gain from SENSITIVITY')   
+             fits[0].header.update('GAIN',fits[0].header['HIERARCH SENSITIVITY'], 'Replaced 0 with actual gain from SENSITIVITY')   
          # For EM mode the READNOISE and GAIN values equals the specification sheet values divided by the value given in the GAIN keyword. 
          # And if GAIN = 0 change it to GAIN = 1 and use the RON and GAIN from the specification sheet. Once changed to 1 it won't be changed again.
          if fits[0].header['OUTPTAMP'] == 'Electron Multiplying':
@@ -426,7 +435,7 @@ if __name__=='__main__':
              fits.flush()
              tooBIGflag = 0
              fits.close()
-         except ValueError:
+         except (ValueError,MemoryError):
              tooBIGflag = 1
              if tooBIGopened == 0:
                  tooBIG =  open('tooBIG','w')
@@ -442,6 +451,7 @@ if __name__=='__main__':
              print >> SHOCscript, 'rm sort*'
              print >> SHOCscript, 'rm rename*'
          if tooBIGflag == 1 and tooBIGisolated == 0:
+         #if tooBIGflag == 1:
              print >> tooBIG, "../slice.py "+TARGETSdatalist[i]
              FLATSfile = '0'
              BIASfile = '0'
@@ -489,10 +499,6 @@ if __name__=='__main__':
             flatfiles.append(flatfilename)
             vbinflat.append(vbinflattemp)
             hbinflat.append(hbinflattemp)
-            if tooBIGflag == 0:
-               print >> SHOCscript, "../MasterFlats.py "+ flatfilename+' ' +str(filters)
-            else:
-               os.system("../MasterFlats.py "+ flatfilename+' ' +str(filters))
             masterflats = 'Y'
 
       # Make a list containing only the individual FLAT fits files:
@@ -509,6 +515,11 @@ if __name__=='__main__':
             hbin = fits[0].header['HBIN']
             if vbin == vbinflat[i] and hbin == hbinflat[i]:
                print >> flatfile, splittedFLATSlist[j]
+         flatfile.close()
+         if tooBIGflag == 0:
+            print >> SHOCscript, "../MasterFlats.py "+ flatfiles[i]+' ' +str(filters)
+         else:
+            os.system("../MasterFlats.py "+ flatfiles[i]+' ' +str(filters))
 
 
    #######################################
@@ -550,10 +561,6 @@ if __name__=='__main__':
             biasfiles.append(biasfilename)
             vbinbias.append(vbinbiastemp)
             hbinbias.append(hbinbiastemp)
-            if tooBIGflag == 0:
-               print >> SHOCscript, "../MasterBias.py "+ biasfilename
-            else:
-               os.system("../MasterBias.py "+ biasfilename)
             masterbias = 'Y'
 
       # Make a list containing only the individual BIAS fits files:
@@ -570,10 +577,11 @@ if __name__=='__main__':
             hbin = fits[0].header['HBIN']
             if vbin == vbinbias[i] and hbin == hbinbias[i]:
                print >> biasfile, splittedBIASlist[j]
-
-
-   # Make sub-folder
-   print >> SHOCscript, 'mkdir ReducedData'
+         biasfile.close()
+         if tooBIGflag == 0:
+            print >> SHOCscript, "../MasterBias.py "+ biasfiles[i]
+         else:
+            os.system("../MasterBias.py "+ biasfiles[i])
 
 
 #################################################################################
@@ -587,7 +595,12 @@ if __name__=='__main__':
       catlist = ''
       for j in range(len(TARGETSdatalist)):
          print >> SHOCscript, "#----------------------------------------------------------------"
-         cubenumber = str(TARGETSdatalist[j]).split('.')[1]
+         #cubenumber = str(TARGETSdatalist[j]).split('.')[1]
+         cubenumberlist = TARGETSdatalist[j].split('.')
+         if TARGETSdatalist[j].count('_')==0:
+            cubenumber = cubenumberlist[1]
+         else:
+            cubenumber = cubenumberlist[1]+cubenumberlist[2]
          observationdate = str(TARGETSdatalist[j]).split('.')[0]
 
          ######################################
@@ -628,8 +641,11 @@ if __name__=='__main__':
             else:
                print >> tooBIG, "awk '{print "+'"b"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
          else:
+            if CUBEtooBIGflag[j] == 0:
                print >> SHOCscript, 'awk '+"'"+'{print "'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
                startFITSfile = "s"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001.fits"
+            else:
+               print >> tooBIG, "awk '{print "+'""'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
 
          if biased == 'N' and targetname != 'QuickLook' and tooBIGexecuting == 0:
                print '                                                                                                       '
@@ -745,6 +761,8 @@ if __name__=='__main__':
             print >> SHOCscript, 'awk '+"'"+'{print "ReducedData/'+'"$0}'+"'"+' temp > temptemp'
             print >> SHOCscript, 'mv temptemp reduced'+cubenumber
             print >> SHOCscript, 'rm temp'
+            # Make sub-folder
+            print >> SHOCscript, 'mkdir ReducedData'
             print >> SHOCscript, 'mv *s*.'+cubenumber+'.*.fits ReducedData'
             print >> SHOCscript, 'echo "########################################################################################"'
             print >> SHOCscript, 'echo "# Individual FITS files with corrected headers are saved in the ReducedData folder.    #"'
@@ -805,7 +823,7 @@ if __name__=='__main__':
             tooBIG.close()
             os.system('chmod a+x tooBIG')
             os.system('rm SHOCscript PHOTscript')
-            os.system('cp tooBIG tooBIG'+cubenumber)
+            os.system('mv tooBIG tooBIG'+cubenumber)
             print "######################################################################################################################"
             print "The FITS file "+TARGETSdatalist[j] +" is too large. It may be handled separately by running:           ./tooBIG"+cubenumber
             if len(TARGETSdatalist) > 1:
