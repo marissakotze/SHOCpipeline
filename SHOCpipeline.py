@@ -1,13 +1,23 @@
 #! /usr/bin/env python
 
 #####################################
+#####################################
 # Data reduction Pipeline for SHOC  #
 #####################################
+#####################################
 
+# IMPORT Python plug-ins
 import sys
 import numpy
 import pyfits
 import os
+
+
+#################
+################
+#  FUNCTIONS  #
+################
+#################
 
 #################################################
 # Function: prompt user input of GPS start time #
@@ -104,18 +114,20 @@ def checkYNinput(variable):
 # Function: check validity of master FLAT/BIAS  #
 #################################################
 
-def checkBINNING(suppliedfile,FILEtype,hbin,vbin):
+def checkBINNING(suppliedfile,FILEtype,hbin,vbin,subframe):
    """ Binning for target files and supplied master BIAS/FLAT must be the same. Allow the user to choose to continue regardless  """
    suppliedfile = checkFILEname(suppliedfile,FILEtype)
    fits = pyfits.open(suppliedfile)
    hbinsupplied = str(fits[0].header['HBIN'])
    vbinsupplied = str(fits[0].header['VBIN'])
+   dimsupplied = str(fits[0].header['SUBRECT'])
    hbin = str(int(hbin))
    vbin = str(int(vbin))
-   if hbinsupplied != hbin or vbinsupplied != vbin:
+   if hbinsupplied != hbin or vbinsupplied != vbin or dimsupplied != subframe:
       print '                                                                                                       '
       print '#########################################################################################################'
       print ' WARNING: Target files are binned at '+hbin+'x'+vbin+' but '+FILEtype+' at '+hbinsupplied+'x'+vbinsupplied
+      print '          and Target files are subframed at '+subframe+' but '+FILEtype+' at '+dimsupplied
       print '          Subsequently '+TARGETSdatalist[j]+' will NOT be '+FILEtype.strip('master ')+' corrected!'
       print '#########################################################################################################'
       userprompt = raw_input("Do you wish to continue regardless? (Y/N):  ")
@@ -125,14 +137,21 @@ def checkBINNING(suppliedfile,FILEtype,hbin,vbin):
       suppliedfile = 'dud'
    # return values to main program 
    return suppliedfile
+
+
 ####################
 ##################
 #  MAIN PROGRAM  #
 ##################
 ####################
 
+
 if __name__=='__main__':
    _nargs = len(sys.argv)
+   ################
+   #  User inputs #
+   ################
+   # Prompt user for inputs
    if _nargs == 1:
       TARGETSfile = raw_input("File containing the list of raw TARGET files (0 if none or the name of a single fits file):  ")
       if TARGETSfile != '0':
@@ -155,6 +174,7 @@ if __name__=='__main__':
       telescope = raw_input("Provide TELESCOPE info (e.g. 30in/40in/74in): ")
       instrument = raw_input("Provide INSTRUMENT info (e.g. shocnawe/shocndisbelief/shocnhorror): ")
       filters = raw_input("Provide FILTER info [<wheelA><wheelB>] (e.g. 38): ")
+   # Inputs from arguments in command line
    else:
       TARGETSfile = sys.argv[1]
       FLATSfile = sys.argv[2]
@@ -171,13 +191,16 @@ if __name__=='__main__':
    # Open file for saving inputs given to SHOCpipeline.py
    SHOCpipelineINPUTS = open('SHOCpipelineINPUTS','w')
    print >> SHOCpipelineINPUTS, "../SHOCpipeline.py "+TARGETSfile+" "+FLATSfile+" "+BIASfile+" "+targetname+" "+ra+" "+dec+" "+epoch+" "+site+" "+telescope+" "+instrument+" "+filters
+   SHOCpipelineINPUTS.close()
+   os.system('chmod a+x SHOCpipelineINPUTS')
 
+   # Determine if the main control script executing is the tooBIG scenario (alternate route for cubes > 2GB)
    if TARGETSfile.count('sort')>0 and FLATSfile=='0' and BIASfile=='0':
       tooBIGexecuting = 1
    else:
       tooBIGexecuting = 0
 
-   
+   # Warn the user if the RA and DEC is 0s. For quicklook the user should know this anyway!
    if ra == '0' and dec == '0' and TARGETSfile != '0' and targetname != 'QuickLook':
       print '                                                                                                                    '
       print '####################################################################################################################'
@@ -185,33 +208,39 @@ if __name__=='__main__':
       print ' However, the relative timing will be correct for those interested in variability'
       print '####################################################################################################################'
 
+   # Check the validity of filenames supplied
    if TARGETSfile != '0':
       TARGETSfile = checkFILEname(TARGETSfile,'TARGET')
    if FLATSfile != '0':
       FLATSfile = checkFILEname(FLATSfile, 'FLAT')
    if BIASfile != '0':
       BIASfile = checkFILEname(BIASfile,'BIAS')
+   # Check the validity of RA and DEC values supplied
    if ra != '0':
       ra = checkRAinput(ra)
    if dec != '0':
       dec = checkDECinput(dec)
 
+   # Correct the permissions of the fits cubes to avoid access issues
    os.system('chmod 754 *fits')      
+   # Create symbolic link to user's login.cl in their IRAF directory
    os.system('ln -s ../iraf/login.cl login.cl')
 
+   # Copy the 'defaultparameters' to 'parameters' (which the user may edit) if the latter is not already present
    try:
       f = open('parameters','r')
    except IOError, e: 
       os.system('cp ../defaultparameters parameters')
 
    ####################
-   # Load input files #
+   # Determine tasks  #
    ####################
 
    masterbias = 'N'
    masterflats = 'N'
    dophotometry = 'N'
 
+   # Determine if masterflats need to be made and the list of FLATS cubes to use
    if targetname != 'QuickLook' and tooBIGexecuting == 0: 
        if FLATSfile == '0':
            makemasterflats = 'N'
@@ -232,6 +261,7 @@ if __name__=='__main__':
    else:
        makemasterflats = 'N'
 
+   # Determine if only masterflats and masterbias need to be made, or photometry on TARGET cubes also
    if TARGETSfile == '0':
        dophotometry = 'N'
        print '                                                                                                       '
@@ -253,6 +283,7 @@ if __name__=='__main__':
                TARGETSdatalist = []
                TARGETSdatalist.append(singlefilename)
 
+   # Determine if masterbias need to be made and the list of BIAS cubes to use
    if targetname != 'QuickLook' and tooBIGexecuting == 0:
        if BIASfile == '0':
            makemasterbias = 'N'
@@ -281,7 +312,6 @@ if __name__=='__main__':
    sensitivity = readoutnoise[5]
    readnoise = readoutnoise[6]
    readtime = readoutnoise[7]
-
    tempreadnoise = 0
 
    # Open script file for PRE-REDUCTIONS
@@ -292,10 +322,6 @@ if __name__=='__main__':
    PHOTscript = open('PHOTscript','w')
    print >> PHOTscript, "#! /bin/bash"
 
-   # Open script file for PLOTTING
-#   PLOTscript = open('PLOTscript','w')
-#   print >> PLOTscript, "#! /bin/bash"
-
    # Open script file for COPYING raw data
    COPYscript = open('COPYscript','w')
    print >> COPYscript, "#! /bin/bash"
@@ -303,7 +329,6 @@ if __name__=='__main__':
    # Compile all scripts to be executable from the commandline
    os.system('chmod a+x SHOCscript')
    os.system('chmod a+x PHOTscript')
-#   os.system('chmod a+x PLOTscript')
    os.system('chmod a+x COPYscript')
  
    ##############################
@@ -319,6 +344,7 @@ if __name__=='__main__':
       # Determine the binning of the TARGETfiles and update their FITS HEADERS
       vbincube = []
       hbincube = []
+      dimcube = []
       EMmode = [] 
       trigger = []
       CUBEtooBIGflag = []
@@ -326,10 +352,12 @@ if __name__=='__main__':
       tooBIGisolated = 0
       for i in range(len(TARGETSdatalist)): 
          cubenumberlist = TARGETSdatalist[i].split('.')
+         # Distinguish the cubenumber for the Spooling scenario
          if TARGETSdatalist[i].count('_')==0:
             cubenumber = cubenumberlist[1]
          else:
             cubenumber = cubenumberlist[1]+cubenumberlist[2]
+         # Check if the GPSinfo has already been supplied for a cube (or the parent cube in the case of Spooling scenario)
          try:
             if cubenumber.count('_') > 0:
                GPSstart, increment = numpy.loadtxt('GPSinfo'+cubenumber.split('_')[0],dtype="str", unpack=True)
@@ -338,10 +366,13 @@ if __name__=='__main__':
             GPSflag = 1
          except IOError, e: 
             GPSflag = 0
+         # Open the fits cube and attempt to correct its primary header (there is only one header per cube)
          fits = pyfits.open(TARGETSdatalist[i],mode='update')
          vbincube.append(float(fits[0].header['VBIN']))
          hbincube.append(float(fits[0].header['HBIN']))
+         dimcube.append(fits[0].header['SUBRECT'])
          EMmode.append(fits[0].header['OUTPTAMP'])
+         # Populate the missing FITS headers
          fits[0].header.update('OBJECT',targetname,'----Source information block------')
          fits[0].header.update('RA_PNT',ra,'RA of source for Nominal pointing in deg')
          fits[0].header.update('DEC_PNT',dec,'DEC of source for Nominal pointing in deg')
@@ -352,12 +383,13 @@ if __name__=='__main__':
          fits[0].header.update('OBSERVAT',site,'Observatory')
          fits[0].header.update('TELESCOP',telescope,'Telescope')
          fits[0].header.update('INSTRUME',instrument,'Instrument')
+         # Correct TIMING headers for GPS triggered frames
          if fits[0].header['TRIGGER'] == 'External':
              if float(fits[0].header['EXPOSURE']) == 0.00001: 
                  if GPSflag == 0:
-                    print "############################################################################################################"
-                    print "The timing was triggered via the GPS. The user must supply the appropriate information for the FITS headers:"
-                    print "############################################################################################################"
+                    print "######################################################################################################################################"
+                    print "The timing for "+TARGETSdatalist[i]+" was triggered via the GPS. The user must supply the appropriate information for the FITS headers :"
+                    print "######################################################################################################################################"
                     GPSstart = changeSTARTtime(cubenumber)
                     exposure = raw_input("Supply the exposure time (POP repeat interval) in milliseconds [ms]:   ")
                     while exposure.isdigit() == False:
@@ -375,18 +407,20 @@ if __name__=='__main__':
                  fits[0].header.update('KCT',exposuresec,'GPS repeat interval [s]')
                  fits[0].header.update('TRIGGER','GPS','Trigger mode (External)')                 
              else:
-                 print "#####################################################################################################################"
-                 print " The timing appears to have been triggered externally, but the timing mode that was used is not currently supported."
-                 print "#####################################################################################################################"
+                 print "###############################################################################################################################################"
+                 print " The timing for "+TARGETSdatalist[i]+" appears to have been triggered externally, but the timing mode that was used is not currently supported."
+                 print "###############################################################################################################################################"
                  os.system('rm SHOCscript PHOTscript')
                  sys.exit()
+         # Correct TIMING headers for Internally triggered frames
          elif fits[0].header['TRIGGER'] == 'Internal':
              fits[0].header.update('FRAME',fits[0].header['FRAME'],'End of 1st Exposure in Data Cube')
+         # Correct TIMING headers for GPS triggered start with subsequent Internal triggering of frames
          elif fits[0].header['TRIGGER'] == 'External Start':
              if GPSflag == 0:
-                print "######################################################################################################################"
-                print "The timing was triggered externally. The user is required to supply the appropriate information for the FITS headers:"
-                print "######################################################################################################################"
+                print "############################################################################################################################################"
+                print "The timing "+TARGETSdatalist[i]+" was triggered externally. The user is required to supply the appropriate information for the FITS headers:"
+                print "############################################################################################################################################"
                 GPSstart = changeSTARTtime(cubenumber)
                 exposureseconds = float(fits[0].header['EXPOSURE']) + 0.00676
                 GPSinfo = open('GPSinfo'+cubenumber,'w')
@@ -397,20 +431,20 @@ if __name__=='__main__':
                 fits[0].header.update('FRAME',GPSstart,'GPS start time of the cube')
              fits[0].header.update('ACT',exposureseconds,'Integration cycle time [s]')
              fits[0].header.update('KCT',exposureseconds,'Kinetic cycle time [s]')
-
+         # Warn user if unsupported triggering mode was used and exit
          elif fits[0].header['TRIGGER'] != 'GPS':
-             print "##########################################################"
-             print " The timing mode that was used is not currently supported."
-             print "##########################################################"
+             print "######################################################################################"
+             print " The timing mode that was used for "+TARGETSdatalist[i]+" is not currently supported."
+             print "######################################################################################"
              os.system('rm SHOCscript PHOTscript')
              sys.exit()
          trigger.append(str(fits[0].header['TRIGGER']))
 
+         # Determine theoreticel Read-out noise and populate the 'RON' header (and 'SENSITIVIY' if it is absent)
          for j in range(len(serialnr)): 
              if float(fits[0].header['HIERARCH SENSITIVITY'])== float(sensitivity[j]) and float(fits[0].header['SERNO'])== float(serialnr[j]):
                  fits[0].header.update('RON',readnoise[j],'Read-out Noise')
                  tempreadnoise = readnoise[j]
-#             elif float(fits[0].header['SENSITIVITY']) == float(0)  and str(fits[0].header['SERNO']) == serialnr[j] and str(fits[0].header['PREAMP'])== preAmp[j] and float(fits[0].header['READTIME']) == float(readtime[j]) and fits[0].header['OUTPTAMP'] == mode[j]:
              elif str(fits[0].header['SERNO']) == serialnr[j] and str(fits[0].header['PREAMP'])== preAmp[j] and float(fits[0].header['READTIME']) == float(readtime[j]) and fits[0].header['OUTPTAMP'] == mode[j]:
                  fits[0].header.update('RON',readnoise[j],'Read-out Noise') 
                  tempreadnoise = readnoise[j]
@@ -430,7 +464,7 @@ if __name__=='__main__':
                  fits[0].header.update('RON',float(tempreadnoise)/float(fits[0].header['GAIN']),'Read-out Noise')
                  fits[0].header.update('GAIN',float(fits[0].header['GAIN'])/float(fits[0].header['GAIN']), 'Replaced value of '+str(fits[0].header['GAIN']))
 
-         # SAVE the updated FITS cube if it can, otherwise set up an alternate route (tooBIG)
+         # SAVE the updated FITS cube if it can, otherwise set up an alternate SHOCscript route (tooBIG)
          try:
              fits.flush()
              tooBIGflag = 0
@@ -442,16 +476,16 @@ if __name__=='__main__':
                  print >> tooBIG, "#! /bin/bash" 
                  print >> tooBIG, "rm tmp*"     
                  tooBIGopened = 1   
+                 # Note that closing a fits file that could not be flushed, causes the file to be corrupted
          CUBEtooBIGflag.append(tooBIGflag)     
     
-         # SPLIT the data CUBES into separate FITS files
+         # SPLIT the data CUBES into separate FITS image files (one frame each)
          if tooBIGflag == 0:
              print >> SHOCscript, "../slice.py "+ TARGETSdatalist[i]
              print >> SHOCscript, "cp sort"+cubenumber+' splittedtarget'+cubenumber
              print >> SHOCscript, 'rm sort*'
              print >> SHOCscript, 'rm rename*'
          if tooBIGflag == 1 and tooBIGisolated == 0:
-         #if tooBIGflag == 1:
              print >> tooBIG, "../slice.py "+TARGETSdatalist[i]
              FLATSfile = '0'
              BIASfile = '0'
@@ -463,9 +497,11 @@ if __name__=='__main__':
    #######################################
    # Create MASTER FLATS from RAW flats: #
    #######################################
+
    flatfielded = 'N'
    vbinflat = []
    hbinflat = []
+   dimflat = []
    flatfiles = []
 
    if makemasterflats == 'Y':
@@ -474,6 +510,7 @@ if __name__=='__main__':
          fits = pyfits.open(FLATSdatalist[i],mode='update')
          vbinflattemp = fits[0].header['VBIN']
          hbinflattemp = fits[0].header['HBIN']
+         dimflat.append(fits[0].header['SUBRECT'])
          fits[0].header.update('OBJECT','SKYFLAT','----Source information block------')
          fits[0].header.update('RA_PNT','00:00:00','RA of source for Nominal pointing in deg')
          fits[0].header.update('DEC_PNT','00:00:00','DEC of source for Nominal pointing in deg')
@@ -499,8 +536,7 @@ if __name__=='__main__':
             flatfiles.append(flatfilename)
             vbinflat.append(vbinflattemp)
             hbinflat.append(hbinflattemp)
-            masterflats = 'Y'
-
+            
       # Make a list containing only the individual FLAT fits files:
       os.system('cat splittedflats* > sortedflats')
       os.system('rm splittedflats*')
@@ -520,14 +556,17 @@ if __name__=='__main__':
             print >> SHOCscript, "../MasterFlats.py "+ flatfiles[i]+' ' +str(filters)
          else:
             os.system("../MasterFlats.py "+ flatfiles[i]+' ' +str(filters))
+         masterflats = 'Y'
 
 
    #######################################
    # Create MASTER BIAS from RAW bias: #
    #######################################
+
    biased = 'N'
    vbinbias = []
    hbinbias = []
+   dimbias = []
    biasfiles = []
 
    if makemasterbias == 'Y':
@@ -536,6 +575,7 @@ if __name__=='__main__':
          fits = pyfits.open(BIASdatalist[i],mode='update')
          vbinbiastemp = fits[0].header['VBIN']
          hbinbiastemp = fits[0].header['HBIN']
+         dimbias.append(fits[0].header['SUBRECT'])
          fits[0].header.update('OBJECT','BIAS','----Source information block------')
          fits[0].header.update('RA_PNT','00:00:00','RA of source for Nominal pointing in deg')
          fits[0].header.update('DEC_PNT','00:00:00','DEC of source for Nominal pointing in deg')
@@ -561,14 +601,13 @@ if __name__=='__main__':
             biasfiles.append(biasfilename)
             vbinbias.append(vbinbiastemp)
             hbinbias.append(hbinbiastemp)
-            masterbias = 'Y'
 
       # Make a list containing only the individual BIAS fits files:
       os.system('cat splittedbias* > sortedbias')
       os.system('rm splittedbias*')
 
-      splittedBIASlist = numpy.loadtxt('sortedbias',dtype="str")   
       # Write BIAS filenames into lists per binning
+      splittedBIASlist = numpy.loadtxt('sortedbias',dtype="str")   
       for i in range(len(biasfiles)):
          biasfile = open(biasfiles[i],'w')
          for j in range(len(splittedBIASlist)):
@@ -582,49 +621,57 @@ if __name__=='__main__':
             print >> SHOCscript, "../MasterBias.py "+ biasfiles[i]
          else:
             os.system("../MasterBias.py "+ biasfiles[i])
+         masterbias = 'Y'
 
-
-#################################################################################
    #############################################################################
    # Do flatfielding, update HEADERS with timing information and do PHOTOMETRY #
    #############################################################################
-#################################################################################
 
-   
+   biasflag = 0
+   flatflag = 0
    if dophotometry == 'Y':
       catlist = ''
       for j in range(len(TARGETSdatalist)):
          print >> SHOCscript, "#----------------------------------------------------------------"
-         #cubenumber = str(TARGETSdatalist[j]).split('.')[1]
+         # Distinguish the cubenumber for the Spooling scenario
          cubenumberlist = TARGETSdatalist[j].split('.')
          if TARGETSdatalist[j].count('_')==0:
             cubenumber = cubenumberlist[1]
          else:
             cubenumber = cubenumberlist[1]+cubenumberlist[2]
+         # Extract Observation date (night where observing started) from the filenames [ONLY used in COPYscript]
          observationdate = str(TARGETSdatalist[j]).split('.')[0]
 
          ######################################
-         # Subtract Master Bias from umages:  #
+         # Subtract Master Bias from images:  #
          ######################################
 
-         for i in range(len(biasfiles)):
-            if vbincube[j] == vbinbias[i] and hbincube[j] == hbinbias[i]:
-               biased = 'Y'
-               print >> SHOCscript, "../BiasCorrection.py "+"splittedtarget"+cubenumber+" "+str(vbinbias[i])+'x'+str(hbinbias[i])+"Bias"+".fits"
+         defaultBIAS = str(int(vbincube[j]))+'x'+str(int(hbincube[j]))+"Bias"+".fits"
 
-         if masterbias == 'Y':
+         # Do Bias subtraction if appropriate raw bias frames we included
+         for i in range(len(biasfiles)):
+            if vbincube[j] == vbinbias[i] and hbincube[j] == hbinbias[i] and dimcube[j] == dimbias[i]:
+               biased = 'Y'
+               biasstring = 'b'
+               if CUBEtooBIGflag[j] == 0:
+                  print >> SHOCscript, "../BiasCorrection.py "+"splittedtarget"+cubenumber+" "+defaultBIAS
+               else:
+                  print >> tooBIG, "../BiasCorrection.py splittedtarget"+cubenumber+" "+defaultBIAS
+
+         # Do Bias-subtraction if appropriate master bias is already available
+         if masterbias == 'Y' and makemasterbias == 'N':
             biasstring = 'b'
             biased = 'Y'
-            defaultBIAS = str(int(vbincube[j]))+'x'+str(int(hbincube[j]))+"Bias"+".fits"
-            if CUBEtooBIGflag[j] == 0 and tooBIGexecuting == 0:
+            if CUBEtooBIGflag[j] == 0 and tooBIGexecuting == 0 and makemasterbias == 'N' and biasflag == 0:
                suppliedmasterbias = raw_input("Supply the name of the appropriate master BIAS file (default: "+defaultBIAS+"):  ")
+               biasflag = 1
             else:
                suppliedmasterbias = ''
             if suppliedmasterbias == '':
                suppliedmasterbias = defaultBIAS
             if CUBEtooBIGflag[j] == 0:
                suppliedmasterbias = checkFILEname(suppliedmasterbias,'master BIAS')
-               suppliedmasterbias = checkBINNING(suppliedmasterbias,'master BIAS',hbincube[j],vbincube[j])
+               suppliedmasterbias = checkBINNING(suppliedmasterbias,'master BIAS',hbincube[j],vbincube[j],dimcube[j])
             if suppliedmasterbias != 'dud':
                if CUBEtooBIGflag[j] == 0:               
                   print >> SHOCscript, "../BiasCorrection.py "+"splittedtarget"+cubenumber+" "+suppliedmasterbias               
@@ -632,21 +679,18 @@ if __name__=='__main__':
                   print >> tooBIG, "../BiasCorrection.py splittedtarget"+cubenumber+" "+suppliedmasterbias
             else:
                biased = 'N'
+               biasstring = ''
+         elif biased == 'Y': biasstring = 'b'
          else: biasstring = ''
 
-         if biased == 'Y':
-            if CUBEtooBIGflag[j] == 0:
-               print >> SHOCscript, 'awk '+"'"+'{print "b'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
-               startFITSfile = "bs"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001.fits"
-            else:
-               print >> tooBIG, "awk '{print "+'"b"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
+         # Adjust lists of fits filenames to include 'b' for Bias-correction
+         if CUBEtooBIGflag[j] == 0:
+            print >> SHOCscript, 'awk '+"'"+'{print "'+biasstring+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
+            startFITSfile = biasstring+"s"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001.fits"
          else:
-            if CUBEtooBIGflag[j] == 0:
-               print >> SHOCscript, 'awk '+"'"+'{print "'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
-               startFITSfile = "s"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001.fits"
-            else:
-               print >> tooBIG, "awk '{print "+'""'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
+            print >> tooBIG, "awk '{print "+'"'+biasstring+'"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
 
+         # Warn the user if BIAS-subtraction is not done
          if biased == 'N' and targetname != 'QuickLook' and tooBIGexecuting == 0:
                print '                                                                                                       '
                print '#########################################################################################################'
@@ -662,33 +706,44 @@ if __name__=='__main__':
          # Divide images by Master Flats:  #
          ###################################
 
-         for i in range(len(flatfiles)):
-            if vbincube[j] == vbinflat[i] and hbincube[j] == hbinflat[i]:
-               flatfielded = 'Y'
-               print >> SHOCscript, "../FlatFielding.py "+"reduced"+cubenumber+ " c"+str(vbinflat[i])+'x'+str(hbinflat[i])+"Flat"+str(filters)+".fits"
+         defaultFLAT = 'c'+str(int(vbincube[j]))+'x'+str(int(hbincube[j]))+"Flat"+str(filters)+".fits"
 
-         if masterflats == 'Y':
+         # Do Flat-fielding if appropriate raw flat frames were included
+         for i in range(len(flatfiles)):
+            if vbincube[j] == vbinflat[i] and hbincube[j] == hbinflat[i] and dimcube[j] == dimflat[i]:
+               flatfielded = 'Y'
+               flatstring = 'c'
+               if CUBEtooBIGflag[j] == 0:
+                  print >> SHOCscript, "../FlatFielding.py "+"reduced"+cubenumber+" "+defaultFLAT
+               else:
+                  print >> tooBIG, "../FlatFielding.py reduced"+cubenumber+" "+defaultFLAT
+
+         # Do Flat-fielding if appropriate master flat is already available
+         if masterflats == 'Y' and makemasterflats == 'N':
             flatstring = 'c'
             flatfielded = 'Y'
-            defaultFLAT = 'c'+str(int(vbincube[j]))+'x'+str(int(hbincube[j]))+"Flat"+str(filters)+".fits"
-            if CUBEtooBIGflag[j] == 0 and tooBIGexecuting == 0:
+            if CUBEtooBIGflag[j] == 0 and tooBIGexecuting == 0 and makemasterflats == 'N' and flatflag == 0:
                suppliedmasterflat = raw_input("Supply the name of the appropriate master FLAT file (default: "+defaultFLAT+"):  ")
+               flatflag = 1
             else:
                suppliedmasterflat = ''
             if suppliedmasterflat == '':
                suppliedmasterflat = defaultFLAT
             if CUBEtooBIGflag[j] == 0:
                suppliedmasterflat = checkFILEname(suppliedmasterflat,'master FLAT')
-               suppliedmasterflat = checkBINNING(suppliedmasterflat,'master FLAT',hbincube[j],vbincube[j])   
+               suppliedmasterflat = checkBINNING(suppliedmasterflat,'master FLAT',hbincube[j],vbincube[j],dimcube[j])   
             if suppliedmasterflat != 'dud':         
                if CUBEtooBIGflag[j] == 0:
                   print >> SHOCscript, "../FlatFielding.py "+"reduced"+cubenumber+ " "+suppliedmasterflat
                else:
                   print >> tooBIG, "../FlatFielding.py reduced"+cubenumber+" "+suppliedmasterflat 
             else:
-               flatfielded = 'N'           
+               flatfielded = 'N'    
+               flatstring = ''
+         elif flatfielded == 'Y': flatstring = 'c'       
          else: flatstring = ''
 
+         # Warn the user if FLAT-fielding is not done
          if flatfielded == 'N' and targetname != 'QuickLook' and tooBIGexecuting == 0:
                print '                                                                                                       '
                print '#########################################################################################################'
@@ -703,14 +758,15 @@ if __name__=='__main__':
          ################################################
          # Determine the filenames of the reduced files #
          ################################################
+
+         # Adjust lists of fits filenames to include 'b' for Bias-correction and 'c' for Flat-fielding
          if flatfielded == 'Y' and biased == 'Y':
             if CUBEtooBIGflag[j] == 0:
                print >> SHOCscript, 'awk '+"'"+'{print "cb'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
                startFITSfile = "cbs"+str(TARGETSdatalist[j]).split('.')[0]+'.'+cubenumber+ ".0001.fits"
                print >> SHOCscript, 'rm '+startFITSfile.replace('.0001.fits','.*').replace('cbs','bs')+' '+startFITSfile.replace('.0001.fits','.*').replace('cbs','s')
             else:
-               print >> tooBIG, "awk '{print "+'"cb"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
-               #print >> tooBIG, "rm bs"+TARGETSdatalist[j].replace('fits','')+"* s"+TARGETSdatalist[j].replace('fits','')+"*"   
+               print >> tooBIG, "awk '{print "+'"cb"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber  
          elif flatfielded == 'N' and biased == 'Y':
             if CUBEtooBIGflag[j] == 0:
                print >> SHOCscript, 'awk '+"'"+'{print "b'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
@@ -718,7 +774,6 @@ if __name__=='__main__':
                print >> SHOCscript, 'rm '+startFITSfile.replace('.0001.fits','.*').replace('bs','s')
             else:
                print >> tooBIG, "awk '{print "+'"b"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
-               #print >> tooBIG, "rm s"+TARGETSdatalist[j].replace('fits','')+"*" 
          elif flatfielded == 'N' and biased == 'N':
             if CUBEtooBIGflag[j] == 0:
                print >> SHOCscript, 'awk '+"'"+'{print "'+'"$0}'+"'"+' splittedtarget'+cubenumber+" > reduced"+cubenumber
@@ -732,7 +787,6 @@ if __name__=='__main__':
                print >> SHOCscript, 'rm '+startFITSfile.replace('.0001.fits','.*').replace('cs','s')
             else:
                print >> tooBIG, "awk '{print "+'"c"'+"$0}' splittedtarget"+cubenumber+" > reduced"+cubenumber
-               #print >> tooBIG, "rm s"+TARGETSdatalist[j].replace('fits','')+"*"
          
          if CUBEtooBIGflag[j] == 0:
             startFITSfiles.append(startFITSfile)
@@ -740,6 +794,8 @@ if __name__=='__main__':
          #######################################
          # Write timing information to HEADERS #
          #######################################
+
+         # Set UTC header in hrs from 00:00 of date contained in FRAME header
          if CUBEtooBIGflag[j] == 0:
             print >> SHOCscript, "../frametime.py "+"reduced"+cubenumber
          else:
@@ -756,12 +812,14 @@ if __name__=='__main__':
          ###################################
          # Move reduced data to sub-folder #
          ###################################
+
+         # If the cube is < 2GB it is handled via the optimized route (SHOCscript)
          if CUBEtooBIGflag[j] == 0:
             print >> SHOCscript, "cp reduced"+cubenumber+" temp"
             print >> SHOCscript, 'awk '+"'"+'{print "ReducedData/'+'"$0}'+"'"+' temp > temptemp'
             print >> SHOCscript, 'mv temptemp reduced'+cubenumber
             print >> SHOCscript, 'rm temp'
-            # Make sub-folder
+            # Make sub-folder for the Reduced fits images
             print >> SHOCscript, 'mkdir ReducedData'
             print >> SHOCscript, 'mv *s*.'+cubenumber+'.*.fits ReducedData'
             print >> SHOCscript, 'echo "########################################################################################"'
@@ -778,11 +836,13 @@ if __name__=='__main__':
                print >> COPYscript, '# where X = 30/40/74 for 0.75m/1.0m/1.9m and Y = awe/disbelief/horror'
             print >> SHOCscript, 'rm '+ TARGETSdatalist[j]
             print >> SHOCscript, "#----------------------------------------------------------------"
+         # If the cube is > 2GB it is handled via an alternative route (tooBIG script)
          else:
             print >> tooBIG, "cp reduced"+cubenumber+" temp"
             print >> tooBIG, 'awk '+"'"+'{print "ReducedData/'+'"$0}'+"'"+' temp > temptemp'
             print >> tooBIG, 'mv temptemp reduced'+cubenumber
             print >> tooBIG, 'rm temp'
+            # Make sub-folder for the Reduced fits images
             print >> tooBIG, 'mkdir ReducedData'
             print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[0-1]*.fits ReducedData'
             print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[2-3]*.fits ReducedData'
@@ -812,13 +872,6 @@ if __name__=='__main__':
             print >> tooBIG, "#----------------------------------------------------------------"
             print >> tooBIG, "../Photometry.py reduced"+cubenumber+" N"
             print >> tooBIG, "#----------------------------------------------------------------"
-#            if triggerstart == 'GPS' or triggerstart == 'External':
-#               print >> tooBIG, "../extract_lcs.py apcor.out"+cubenumber+" "+flatstring+biasstring+"s"+TARGETSdatalist[j].replace('fits','')+"0003.fits"
-#               print >> tooBIG, "../plot_lcs.py lightcurves_based_on_"+flatstring+biasstring+"s"+TARGETSdatalist[j].replace('fits','')+"0003"
-#            else:
-#               print >> tooBIG, "../extract_lcs.py apcor.out"+cubenumber+" "+flatstring+biasstring+"s"+TARGETSdatalist[j].replace('fits','')+"0001.fits"
-#               print >> tooBIG, "../plot_lcs.py lightcurves_based_on_"+flatstring+biasstring+"s"+TARGETSdatalist[j].replace('fits','')+"0001"
-#            print >> tooBIG, "#----------------------------------------------------------------"
             print >> tooBIG, "./PLOTscript"
             tooBIG.close()
             os.system('chmod a+x tooBIG')
@@ -827,35 +880,29 @@ if __name__=='__main__':
             print "######################################################################################################################"
             print "The FITS file "+TARGETSdatalist[j] +" is too large. It may be handled separately by running:           ./tooBIG"+cubenumber
             if len(TARGETSdatalist) > 1:
-               print "Remove it from '"+TARGETSfile+"' and re-run the script for the rest of the files in the list. "
+               print "Then remove it from '"+TARGETSfile+"' and re-run the SHOCpipeline.py script for the rest of the files in the list, "
+               print "by running:       ./SHOCpipelineINPUTS"
             print "######################################################################################################################"
             sys.exit()
          catlist = catlist+" reduced"+cubenumber
 
+      # Create combined list of all frames for multiple cubes
       reducedlist = catlist.split(' reduced')
       reducedcombined = 'reduced'+reducedlist[1]+'to'+reducedlist[-1]
       print >> SHOCscript, 'cat'+catlist+' > '+reducedcombined     
 
       #################
-      # Do PHOTOMETRY #
+      # Do PHOTOMETRY #  (PHOTscript which will generate PLOTscript if successful)
       #################
+
       if CUBEtooBIGflag[j] == 0:
          print >> PHOTscript, "../Photometry.py "+reducedcombined+" N"
          print >> PHOTscript, "#----------------------------------------------------------------"
 
-      #######################
-      # Extract lightcurves #
-      #######################
+      #######################################################
+      # Comments on screen to prompt the user on next steps #
+      #######################################################
 
-#         if triggerstart == 'GPS':
-#            startingFITSfile = startFITSfiles[0].replace('.0001','.0003')
-#         else:
-#            startingFITSfile = startFITSfiles[0]
-#         print >> PLOTscript, "../extract_lcs.py apcor.out"+(reducedcombined.lstrip('reduced')).split('to')[0]+" "+startingFITSfile+ ".fits"
-#         print >> PLOTscript, "../plot_lcs.py lightcurves_based_on_"+startingFITSfile
-#         print >> PLOTscript, "#----------------------------------------------------------------"
-
-      # Comments on screen to prompt the user on next steps
       if targetname != 'QuickLook' and tooBIGexecuting == 0:
          print '                                                                                                       '
          print "###########################################################################################"
