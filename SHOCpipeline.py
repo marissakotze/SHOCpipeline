@@ -313,6 +313,7 @@ if __name__=='__main__':
    readnoise = readoutnoise[6]
    readtime = readoutnoise[7]
    tempreadnoise = 0
+   tooBIGflag = 0
 
    # Open script file for PRE-REDUCTIONS
    SHOCscript = open('SHOCscript','w')
@@ -568,6 +569,7 @@ if __name__=='__main__':
    hbinbias = []
    dimbias = []
    biasfiles = []
+   EMmodebias = []
 
    if makemasterbias == 'Y':
       # Determine the binning of the BIASfiles and update their FITS HEADERS
@@ -576,6 +578,7 @@ if __name__=='__main__':
          vbinbiastemp = fits[0].header['VBIN']
          hbinbiastemp = fits[0].header['HBIN']
          dimbias.append(fits[0].header['SUBRECT'])
+         EMmodebias.append(fits[0].header['OUTPTAMP'])
          fits[0].header.update('OBJECT','BIAS','----Source information block------')
          fits[0].header.update('RA_PNT','00:00:00','RA of source for Nominal pointing in deg')
          fits[0].header.update('DEC_PNT','00:00:00','DEC of source for Nominal pointing in deg')
