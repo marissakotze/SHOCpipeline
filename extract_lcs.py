@@ -140,7 +140,7 @@ if __name__=='__main__':
    if targets == 0  and fromwindows == 0:
        print 'No data was extracted for the FITS file that was supplied to base source posistions on.'
        print 'Edit PHOTscript and change the FITS file specified there to an appropriate file, for which there are data in '+str(file)
-       os.exit()
+       sys.exit()
 
    # Extract the HJD for each FITS file and save it, so the matrix now also contain HJD
    # Determine the UTC values

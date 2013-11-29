@@ -96,7 +96,7 @@ def checkFILEname(file,FILEtype):
          inputfitslist = open(file,'r')
          checkfile = 1
       except IOError:
-         file = raw_input("Invalid file name! Please supply a valid "+FILEtype+" file name in this directory:  ")
+         file = raw_input("Invalid file name "+file+" ! Please supply a valid "+FILEtype+" file name in this directory:  ")
    return file
 
 #################################################
@@ -114,21 +114,25 @@ def checkYNinput(variable):
 # Function: check validity of master FLAT/BIAS  #
 #################################################
 
-def checkBINNING(suppliedfile,FILEtype,hbin,vbin,subframe):
+def checkBINNING(suppliedfile,FILEtype,hbin,vbin,subframe,EMmode):
    """ Binning for target files and supplied master BIAS/FLAT must be the same. Allow the user to choose to continue regardless  """
    suppliedfile = checkFILEname(suppliedfile,FILEtype)
    fits = pyfits.open(suppliedfile)
    hbinsupplied = str(fits[0].header['HBIN'])
    vbinsupplied = str(fits[0].header['VBIN'])
    dimsupplied = str(fits[0].header['SUBRECT'])
+   EMmodesuppliedtemp = str(fits[0].header['OUTPTAMP'])
+   if EMmodesuppliedtemp == 'Conventional':  EMmodesupplied = 'CON'
+   elif EMmodesuppliedtemp == 'Electron Multiplying': EMmodesupplied = 'EM'
    hbin = str(int(hbin))
    vbin = str(int(vbin))
-   if hbinsupplied != hbin or vbinsupplied != vbin or dimsupplied != subframe:
+   if hbinsupplied != hbin or vbinsupplied != vbin or dimsupplied != subframe or (EMmodesupplied != EMmode and FILEtype == 'master BIAS'):
       print '                                                                                                       '
       print '#########################################################################################################'
       print ' WARNING: Target files are binned at '+hbin+'x'+vbin+' but '+FILEtype+' at '+hbinsupplied+'x'+vbinsupplied
-      print '          and Target files are subframed at '+subframe+' but '+FILEtype+' at '+dimsupplied
-      print '          Subsequently '+TARGETSdatalist[j]+' will NOT be '+FILEtype.strip('master ')+' corrected!'
+      print '          Target files are subframed at '+subframe+' but '+FILEtype+' at '+dimsupplied
+      print '          Target files are EM mode '+EMmode+' but '+FILEtype+' is in '+EMmodesupplied
+      print ' Subsequently '+TARGETSdatalist[j]+' will NOT be '+FILEtype.strip('master ')+' corrected!'
       print '#########################################################################################################'
       userprompt = raw_input("Do you wish to continue regardless? (Y/N):  ")
       userprompt = checkYNinput(userprompt)
@@ -372,7 +376,9 @@ if __name__=='__main__':
          vbincube.append(float(fits[0].header['VBIN']))
          hbincube.append(float(fits[0].header['HBIN']))
          dimcube.append(fits[0].header['SUBRECT'])
-         EMmode.append(fits[0].header['OUTPTAMP'])
+         EMmodetemp = fits[0].header['OUTPTAMP']
+         if EMmodetemp == 'Conventional':  EMmode.append('CON')
+         elif EMmodetemp == 'Electron Multiplying': EMmode.append('EM')
          # Populate the missing FITS headers
          fits[0].header.update('OBJECT',targetname,'----Source information block------')
          fits[0].header.update('RA_PNT',ra,'RA of source for Nominal pointing in deg')
@@ -577,8 +583,10 @@ if __name__=='__main__':
          fits = pyfits.open(BIASdatalist[i],mode='update')
          vbinbiastemp = fits[0].header['VBIN']
          hbinbiastemp = fits[0].header['HBIN']
-         dimbias.append(fits[0].header['SUBRECT'])
-         EMmodebias.append(fits[0].header['OUTPTAMP'])
+         dimbiastemp = fits[0].header['SUBRECT']
+         EMmodebiastemp = fits[0].header['OUTPTAMP']
+         if EMmodebiastemp == 'Conventional':  EMmodebiastemplist = 'CON'
+         elif EMmodebiastemp == 'Electron Multiplying': EMmodebiastemplist = 'EM'
          fits[0].header.update('OBJECT','BIAS','----Source information block------')
          fits[0].header.update('RA_PNT','00:00:00','RA of source for Nominal pointing in deg')
          fits[0].header.update('DEC_PNT','00:00:00','DEC of source for Nominal pointing in deg')
@@ -599,11 +607,13 @@ if __name__=='__main__':
          os.system('rm rename*')
 
          # Determine unique binnings among BIAS files
-         biasfilename = str(vbinbiastemp)+'x'+str(hbinbiastemp)+"bias"        
+         biasfilename = str(vbinbiastemp)+'x'+str(hbinbiastemp)+"bias"+EMmodebiastemplist   
          if biasfiles.count(biasfilename) < 1:
             biasfiles.append(biasfilename)
             vbinbias.append(vbinbiastemp)
             hbinbias.append(hbinbiastemp)
+            dimbias.append(dimbiastemp)
+            EMmodebias.append(EMmodebiastemp)
 
       # Make a list containing only the individual BIAS fits files:
       os.system('cat splittedbias* > sortedbias')
@@ -649,11 +659,11 @@ if __name__=='__main__':
          # Subtract Master Bias from images:  #
          ######################################
 
-         defaultBIAS = str(int(vbincube[j]))+'x'+str(int(hbincube[j]))+"Bias"+".fits"
+         defaultBIAS = str(int(vbincube[j]))+'x'+str(int(hbincube[j]))+"Bias"+EMmode[j]+".fits"
 
          # Do Bias subtraction if appropriate raw bias frames we included
          for i in range(len(biasfiles)):
-            if vbincube[j] == vbinbias[i] and hbincube[j] == hbinbias[i] and dimcube[j] == dimbias[i]:
+            if vbincube[j] == vbinbias[i] and hbincube[j] == hbinbias[i] and dimcube[j] == dimbias[i] and EMmode[j] == EMmodebias[i]:
                biased = 'Y'
                biasstring = 'b'
                if CUBEtooBIGflag[j] == 0:
@@ -673,8 +683,7 @@ if __name__=='__main__':
             if suppliedmasterbias == '':
                suppliedmasterbias = defaultBIAS
             if CUBEtooBIGflag[j] == 0:
-               suppliedmasterbias = checkFILEname(suppliedmasterbias,'master BIAS')
-               suppliedmasterbias = checkBINNING(suppliedmasterbias,'master BIAS',hbincube[j],vbincube[j],dimcube[j])
+               suppliedmasterbias = checkBINNING(suppliedmasterbias,'master BIAS',hbincube[j],vbincube[j],dimcube[j],EMmode[j])
             if suppliedmasterbias != 'dud':
                if CUBEtooBIGflag[j] == 0:               
                   print >> SHOCscript, "../BiasCorrection.py "+"splittedtarget"+cubenumber+" "+suppliedmasterbias               
@@ -733,8 +742,7 @@ if __name__=='__main__':
             if suppliedmasterflat == '':
                suppliedmasterflat = defaultFLAT
             if CUBEtooBIGflag[j] == 0:
-               suppliedmasterflat = checkFILEname(suppliedmasterflat,'master FLAT')
-               suppliedmasterflat = checkBINNING(suppliedmasterflat,'master FLAT',hbincube[j],vbincube[j],dimcube[j])   
+               suppliedmasterflat = checkBINNING(suppliedmasterflat,'master FLAT',hbincube[j],vbincube[j],dimcube[j],EMmode[j])   
             if suppliedmasterflat != 'dud':         
                if CUBEtooBIGflag[j] == 0:
                   print >> SHOCscript, "../FlatFielding.py "+"reduced"+cubenumber+ " "+suppliedmasterflat
@@ -828,9 +836,9 @@ if __name__=='__main__':
             print >> SHOCscript, 'echo "########################################################################################"'
             print >> SHOCscript, 'echo "# Individual FITS files with corrected headers are saved in the ReducedData folder.    #"'
             if targetname != 'QuickLook':
-               print >> SHOCscript, 'echo "# The raw fits cube will now be deleted, but may be retrieved by running: ./COPYscript #"'
+               print >> SHOCscript, 'echo "# '+TARGETSdatalist[j]+' will now be deleted, but may be retrieved by running: ./COPYscript #"'
             else:
-               print >> SHOCscript, 'echo "# The raw fits cube will now be deleted                                                #"'
+               print >> SHOCscript, 'echo "# '+TARGETSdatalist[j]+' will now be deleted                                                #"'
             print >> SHOCscript, 'echo "########################################################################################"'
             if targetname != 'QuickLook':
                print >> COPYscript, 'scp ccd'+telescope.rstrip('in')+'@ltsp.suth.saao.ac.za:/data/'+telescope+'/'+instrument+'/'+observationdate[0:4]+'/'+observationdate[4:8]+'/'+TARGETSdatalist[j]+' .'
@@ -862,9 +870,9 @@ if __name__=='__main__':
             print >> tooBIG, 'echo "########################################################################################"'
             print >> tooBIG, 'echo "# Individual FITS files with corrected headers are saved in the ReducedData folder.    #"'
             if targetname != 'QuickLook':
-               print >> tooBIG, 'echo "# The raw fits cube will now be deleted, but may be retrieved by running: ./COPYscript #"'
+               print >> tooBIG, 'echo "# '+TARGETSdatalist[j]+' will now be deleted, but may be retrieved by running: ./COPYscript #"'
             else:
-               print >> tooBIG, 'echo "# The raw fits cube will now be deleted                                                #"'
+               print >> tooBIG, 'echo "# '+TARGETSdatalist[j]+' will now be deleted                                                #"'
             print >> tooBIG, 'echo "########################################################################################"'
             if targetname != 'QuickLook':
                print >> COPYscript, 'scp ccd'+telescope.rstrip('in')+'@ltsp.suth.saao.ac.za:/data/'+telescope+'/'+instrument+'/'+observationdate[0:4]+'/'+observationdate[4:8]+'/'+TARGETSdatalist[j]+' .'

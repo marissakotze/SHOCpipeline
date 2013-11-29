@@ -18,8 +18,12 @@ from pyraf.iraf import images
 from pyraf.iraf import immatch
 from pyraf.iraf import imutil
 
-masterbias = str(file).split('bias')[0]+'tempBias'+'.fits'
-savedmasterbias = str(file).split('bias')[0]+'Bias'+'.fits'
+if len(str(file).split('bias'))<=1:
+   masterbias = str(file).split('bias')[0]+'tempBias'+'.fits'
+   savedmasterbias = str(file).split('bias')[0]+'Bias'+'.fits'
+else:
+   masterbias = str(file).split('bias')[0]+'tempBias'+str(file).split('bias')[1]+'.fits'
+   savedmasterbias = str(file).split('bias')[0]+'Bias'+str(file).split('bias')[1]+'.fits'
 
 immatch.imcombine.input = '@'+file
 immatch.imcombine.output = masterbias                               
