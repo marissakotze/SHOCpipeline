@@ -372,7 +372,11 @@ if __name__=='__main__':
          except IOError, e: 
             GPSflag = 0
          # Open the fits cube and attempt to correct its primary header (there is only one header per cube)
-         fits = pyfits.open(TARGETSdatalist[i],mode='update')
+         try:
+            fits = pyfits.open(TARGETSdatalist[i],mode='update')
+         except IOError:
+            print " File "+TARGETSdatalist[i]+" is no longer in this directory. Copy it here and try again."
+            sys.exit()
          vbincube.append(float(fits[0].header['VBIN']))
          hbincube.append(float(fits[0].header['HBIN']))
          dimcube.append(fits[0].header['SUBRECT'])
@@ -514,7 +518,11 @@ if __name__=='__main__':
    if makemasterflats == 'Y':
       # Determine the binning of the FLATfiles and update their FITS HEADERS
       for i in range(len(FLATSdatalist)): 
-         fits = pyfits.open(FLATSdatalist[i],mode='update')
+         try:
+            fits = pyfits.open(FLATSdatalist[i],mode='update')
+         except IOError:
+            print " File "+FLATSdatalist[i]+" is no longer in this directory. Copy it here and try again."
+            sys.exit()
          vbinflattemp = fits[0].header['VBIN']
          hbinflattemp = fits[0].header['HBIN']
          dimflat.append(fits[0].header['SUBRECT'])
@@ -580,7 +588,11 @@ if __name__=='__main__':
    if makemasterbias == 'Y':
       # Determine the binning of the BIASfiles and update their FITS HEADERS
       for i in range(len(BIASdatalist)): 
-         fits = pyfits.open(BIASdatalist[i],mode='update')
+         try:
+            fits = pyfits.open(BIASdatalist[i],mode='update')
+         except IOError:
+            print " File "+BIASdatalist[i]+" is no longer in this directory. Copy it here and try again."
+            sys.exit()
          vbinbiastemp = fits[0].header['VBIN']
          hbinbiastemp = fits[0].header['HBIN']
          dimbiastemp = fits[0].header['SUBRECT']
