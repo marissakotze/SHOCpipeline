@@ -214,7 +214,7 @@ if __name__=='__main__':
            previousX = float(X[k])
            previousY = float(Y[k])
            print >> lightcurves, '# Source:', k-startLOOP+1, 'at X=', X[k], 'and Y=', Y[k]
-           print >> lightcurves, '# Source Nr  ', 'X  ','Y  ',timeunit+'  ','MAG   ','MAGerr   ','Optimal Aperture   ', 'File name   ', 'Start of exposure (UTC)', 'HJD'
+           print >> lightcurves, '# Source Nr  ', 'X  ','Y  ',timeunit+'  ','MAG   ','MAGerr   ','Optimal Aperture   ', 'File name   ', 'Start of exposure (UTC)', 'HMJD'
            for j in range(startLOOP,len(Fitsfiles)):
                if float(X[j]) >= previousX-margin and float(X[j]) <= previousX+margin and float(Y[j]) >= previousY-margin and float(Y[j]) <= previousY+margin and Mag[j] not in ('INDEF') and MagErr[j] not in ('INDEF'):
                    print >> lightcurves, k-startLOOP+1, X[j], Y[j], obstimeinseconds[j], Mag[j], MagErr[j], Radius[j], Fitsfiles[j]+'.fits', utc[j], hjd[j] #Obstime[j]
@@ -231,7 +231,7 @@ if __name__=='__main__':
                previousX = float(Xcoord)
                previousY = float(Ycoord)       
                print >> lightcurves, '# Source:', k+1, 'at X=', Xcoord, 'and Y=', Ycoord
-           print >> lightcurves, '# Source Nr  ', 'X  ','Y  ',timeunit+'  ','MAG   ','MAGerr   ','Optimal Aperture   ', 'File name   ', 'Start of exposure (UTC)', 'HJD'
+           print >> lightcurves, '# Source Nr  ', 'X  ','Y  ',timeunit+'  ','MAG   ','MAGerr   ','Optimal Aperture   ', 'File name   ', 'Start of exposure (UTC)', 'HMJD'
            for j in range(len(Fitsfiles)):
                if float(X[j]) >= previousX-margin and float(X[j]) <= previousX+margin and float(Y[j]) >= previousY-margin and float(Y[j]) <= previousY+margin and Mag[j] not in ('INDEF') and MagErr[j] not in ('INDEF'):
                    print >> lightcurves, k+1, X[j], Y[j], obstimeinseconds[j], Mag[j], MagErr[j], Radius[j], Fitsfiles[j]+'.fits', utc[j], hjd[j]  #Obstime[j]

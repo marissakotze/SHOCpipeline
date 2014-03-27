@@ -523,8 +523,8 @@ if __name__=='__main__':
          except IOError:
             print " File "+FLATSdatalist[i]+" is no longer in this directory. Copy it here and try again."
             sys.exit()
-         vbinflattemp = fits[0].header['VBIN']
-         hbinflattemp = fits[0].header['HBIN']
+         vbinflattemp = float(fits[0].header['VBIN'])
+         hbinflattemp = float(fits[0].header['HBIN'])
          dimflat.append(fits[0].header['SUBRECT'])
          fits[0].header.update('OBJECT','SKYFLAT','----Source information block------')
          fits[0].header.update('RA_PNT','00:00:00','RA of source for Nominal pointing in deg')
@@ -546,7 +546,7 @@ if __name__=='__main__':
          os.system('rm rename*')
 
          # Determine unique binnings among FLAT files
-         flatfilename = str(vbinflattemp)+'x'+str(hbinflattemp)+"flats"+str(filters)        
+         flatfilename = str(int(vbinflattemp))+'x'+str(int(hbinflattemp))+"flats"+str(filters)        
          if flatfiles.count(flatfilename) < 1:
             flatfiles.append(flatfilename)
             vbinflat.append(vbinflattemp)
@@ -593,8 +593,8 @@ if __name__=='__main__':
          except IOError:
             print " File "+BIASdatalist[i]+" is no longer in this directory. Copy it here and try again."
             sys.exit()
-         vbinbiastemp = fits[0].header['VBIN']
-         hbinbiastemp = fits[0].header['HBIN']
+         vbinbiastemp = float(fits[0].header['VBIN'])
+         hbinbiastemp = float(fits[0].header['HBIN'])
          dimbiastemp = fits[0].header['SUBRECT']
          EMmodebiastemp = fits[0].header['OUTPTAMP']
          if EMmodebiastemp == 'Conventional':  EMmodebiastemplist = 'CON'
@@ -619,13 +619,13 @@ if __name__=='__main__':
          os.system('rm rename*')
 
          # Determine unique binnings among BIAS files
-         biasfilename = str(vbinbiastemp)+'x'+str(hbinbiastemp)+"bias"+EMmodebiastemplist   
+         biasfilename = str(int(vbinbiastemp))+'x'+str(int(hbinbiastemp))+"bias"+EMmodebiastemplist   
          if biasfiles.count(biasfilename) < 1:
             biasfiles.append(biasfilename)
             vbinbias.append(vbinbiastemp)
             hbinbias.append(hbinbiastemp)
             dimbias.append(dimbiastemp)
-            EMmodebias.append(EMmodebiastemp)
+            EMmodebias.append(EMmodebiastemplist)
 
       # Make a list containing only the individual BIAS fits files:
       os.system('cat splittedbias* > sortedbias')
@@ -844,7 +844,9 @@ if __name__=='__main__':
             print >> SHOCscript, 'rm temp'
             # Make sub-folder for the Reduced fits images
             print >> SHOCscript, 'mkdir ReducedData'
-            print >> SHOCscript, 'mv *s*.'+cubenumber+'.*.fits ReducedData'
+            print >> SHOCscript, 'mv *s*.'+cubenumber+'.0[0-4]*.fits ReducedData'
+            print >> SHOCscript, 'mv *s*.'+cubenumber+'.0[5-7]*.fits ReducedData'
+            print >> SHOCscript, 'mv *s*.'+cubenumber+'.0[8-9]*.fits ReducedData'
             print >> SHOCscript, 'echo "########################################################################################"'
             print >> SHOCscript, 'echo "# Individual FITS files with corrected headers are saved in the ReducedData folder.    #"'
             if targetname != 'QuickLook':
@@ -950,5 +952,10 @@ if __name__=='__main__':
             print "The commands contained therein can be run partially and/or repeated in the commandline."
             print "###########################################################################################"
          else:
-            print >> SHOCscript, 'mv s*.*.fits ReducedData'
+            print >> SHOCscript, 'mv s*.0[0-4]*.fits ReducedData'
+            print >> SHOCscript, 'mv s*.0[5-7]*.fits ReducedData'
+            print >> SHOCscript, 'mv s*.0[8-9]*.fits ReducedData'
             print >> SHOCscript, 'rm PHOTscript'
+
+SHOCscript.close()
+PHOTscript.close()
