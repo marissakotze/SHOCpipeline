@@ -10,8 +10,20 @@ if __name__=='__main__':
    else:
       file = sys.argv[1]
 
+if file.count('.fits') >= 1:
+   fitslist = []
+   fitslist.append(file)
+else:
+   fitslist = numpy.loadtxt(file,dtype="str")
+   try:
+      test = len(fitslist)
+   except TypeError:
+      singlefilename = str(fitslist)
+      fitslist = []
+      fitslist.append(singlefilename)
+
 HISTORY = open('pulsetimingHISTORY','w')
-fitslist = numpy.loadtxt(file,dtype="str")
+#fitslist = numpy.loadtxt(file,dtype="str")
 for i in range(len(fitslist)):
    cube = fitslist[i].split('.')[1]
    print >> HISTORY, '../SHOCpipeline.py '+fitslist[i]+' 0 0 QuickLook 0 0 2000 0 0 0 0'

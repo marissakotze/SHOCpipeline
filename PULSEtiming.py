@@ -106,9 +106,12 @@ exposureperexposure.append(exposures[j])
 maxperexposure.append(max(listperexposure))
 minperexposure.append(min(listperexposure))
 
+
+
 for k in range(len(exposureperexposure)):
+   factors = int(0.250/exposureperexposure[k])+1
    #print >> pulsetimingSCRIPT, '../detectedPULSEtiming.py pulsetimingresults pulsetimingpredictions '+str(exposureperexposure[k])+' 0.001 '+str(1.1*minperexposure[k])+' 1'
-   print >> pulsetimingSCRIPT, '../detectedPULSEtiming_pulsewidths.py pulsetimingresults'+cube+' pulsetimingpredictions_UTCstart_'+start.replace(':','_')[:8]+' '+str(exposureperexposure[k])+' 0.001 '+str(1.2*minperexposure[k])+' 10 0.1'
+   print >> pulsetimingSCRIPT, '../detectedPULSEtiming_pulsewidths.py pulsetimingresults'+cube+' pulsetimingpredictions_UTCstart_'+start.replace(':','_')[:8]+' '+str(exposureperexposure[k])+' 0.001 '+str(1.2*minperexposure[k])+' '+str(factors)+' 0.1'
    print >> pulsetimingSCRIPT, 'mv pulsetimingaccuracy pulsetimingaccuracy'+cube
    print >> pulsetimingSCRIPT, 'mv pulsetiminganalysis pulsetiminganalysis'+cube
    print 'Maximum: ', maxperexposure[k], 'for Exposure:', exposureperexposure[k], 'with Mean:', meanperexposure[k]
