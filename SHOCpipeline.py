@@ -952,8 +952,10 @@ if __name__=='__main__':
             print "The commands contained therein can be run partially and/or repeated in the commandline."
             print "###########################################################################################"
          else:
-            print >> SHOCscript, 'mv s*.0[0-4]*.fits ReducedData'
-            print >> SHOCscript, 'mv s*.0[5-7]*.fits ReducedData'
+            print >> SHOCscript, 'mv s*.0[0-1]*.fits ReducedData'
+            print >> SHOCscript, 'mv s*.0[2-3]*.fits ReducedData'
+            print >> SHOCscript, 'mv s*.0[4-5]*.fits ReducedData'
+            print >> SHOCscript, 'mv s*.0[6-7]*.fits ReducedData'
             print >> SHOCscript, 'mv s*.0[8-9]*.fits ReducedData'
             print >> SHOCscript, 'rm PHOTscript'
 

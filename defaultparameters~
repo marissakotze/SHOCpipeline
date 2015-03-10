@@ -1,4 +1,4 @@
-#  List of trial apertures for aperture-corrected photometry [pixels]   -   Specify a single aperture for FIXED aperture photometry
+#  List of trial apertures for aperture-corrected photometry [pixels]   
 #    these should be smaller than the largest star's aperture
 0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,10,12,15
 
