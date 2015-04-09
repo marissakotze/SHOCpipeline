@@ -308,23 +308,6 @@ if __name__=='__main__':
    else:
        makemasterbias = 'N'
 
-   # Remove the extreneous prefix from filenames to keep them short for IRAF. Original RAW files are kept in tact
-   if dophotometry == 'Y':
-       for x in range(len(TARGETSdatalist)):
-           if TARGETSdatalist[x].count('SH') > 0:
-               os.system('cp '+TARGETSdatalist[x]+' '+TARGETSdatalist[x].replace('SHA_','').replace('SHD_','').replace('SHH_',''))
-               TARGETSdatalist[x] = TARGETSdatalist[x].replace('SHA_','').replace('SHD_','').replace('SHH_','')
-   if makemasterbias == 'Y':
-       for y in range(len(BIASdatalist)):
-           if BIASdatalist[y].count('SH') > 0:
-               os.system('cp '+BIASdatalist[y]+' '+BIASdatalist[y].replace('SHA_','').replace('SHD_','').replace('SHH_',''))
-               BIASdatalist[y] = BIASdatalist[y].replace('SHA_','').replace('SHD_','').replace('SHH_','')
-   if makemasterflats == 'Y':
-       for z in range(len(FLATSdatalist)):
-           if FLATSdatalist[z].count('SH') > 0:
-               os.system('cp '+FLATSdatalist[z]+' '+FLATSdatalist[z].replace('SHA_','').replace('SHD_','').replace('SHH_',''))
-               FLATSdatalist[z] = FLATSdatalist[z].replace('SHA_','').replace('SHD_','').replace('SHH_','')
-
    # Read the specification table for readnoise
    readoutnoise = numpy.loadtxt('../ReadoutNoiseTable',dtype="str",delimiter = '\t',unpack=True)
    serialnr = readoutnoise[0]

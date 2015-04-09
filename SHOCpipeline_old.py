@@ -308,23 +308,6 @@ if __name__=='__main__':
    else:
        makemasterbias = 'N'
 
-   # Remove the extreneous prefix from filenames to keep them short for IRAF. Original RAW files are kept in tact
-   if dophotometry == 'Y':
-       for x in range(len(TARGETSdatalist)):
-           if TARGETSdatalist[x].count('SH') > 0:
-               os.system('cp '+TARGETSdatalist[x]+' '+TARGETSdatalist[x].replace('SHA_','').replace('SHD_','').replace('SHH_',''))
-               TARGETSdatalist[x] = TARGETSdatalist[x].replace('SHA_','').replace('SHD_','').replace('SHH_','')
-   if makemasterbias == 'Y':
-       for y in range(len(BIASdatalist)):
-           if BIASdatalist[y].count('SH') > 0:
-               os.system('cp '+BIASdatalist[y]+' '+BIASdatalist[y].replace('SHA_','').replace('SHD_','').replace('SHH_',''))
-               BIASdatalist[y] = BIASdatalist[y].replace('SHA_','').replace('SHD_','').replace('SHH_','')
-   if makemasterflats == 'Y':
-       for z in range(len(FLATSdatalist)):
-           if FLATSdatalist[z].count('SH') > 0:
-               os.system('cp '+FLATSdatalist[z]+' '+FLATSdatalist[z].replace('SHA_','').replace('SHD_','').replace('SHH_',''))
-               FLATSdatalist[z] = FLATSdatalist[z].replace('SHA_','').replace('SHD_','').replace('SHH_','')
-
    # Read the specification table for readnoise
    readoutnoise = numpy.loadtxt('../ReadoutNoiseTable',dtype="str",delimiter = '\t',unpack=True)
    serialnr = readoutnoise[0]
@@ -470,24 +453,19 @@ if __name__=='__main__':
 
          # Determine theoreticel Read-out noise and populate the 'RON' header (and 'SENSITIVIY' if it is absent)
          for j in range(len(serialnr)): 
-             try:
-                 if float(fits[0].header['HIERARCH SENSITIVITY'])== float(sensitivity[j]) and float(fits[0].header['SERNO'])== float(serialnr[j]):
-                     fits[0].header.update('RON',readnoise[j],'Read-out Noise')
-                     tempreadnoise = readnoise[j]
-             except:
-                 if str(fits[0].header['SERNO']) == serialnr[j] and str(fits[0].header['PREAMP'])== preAmp[j] and float(fits[0].header['READTIME']) == float(readtime[j]) and fits[0].header['OUTPTAMP'] == mode[j]:
-                     fits[0].header.update('RON',readnoise[j],'Read-out Noise') 
-                     tempreadnoise = readnoise[j]
-                     fits[0].header.update('SENSITIV',sensitivity[j],'Sensitivity of 0 replaced from RON Table')  
+             if float(fits[0].header['HIERARCH SENSITIVITY'])== float(sensitivity[j]) and float(fits[0].header['SERNO'])== float(serialnr[j]):
+                 fits[0].header.update('RON',readnoise[j],'Read-out Noise')
+                 tempreadnoise = readnoise[j]
+             elif str(fits[0].header['SERNO']) == serialnr[j] and str(fits[0].header['PREAMP'])== preAmp[j] and float(fits[0].header['READTIME']) == float(readtime[j]) and fits[0].header['OUTPTAMP'] == mode[j]:
+                 fits[0].header.update('RON',readnoise[j],'Read-out Noise') 
+                 tempreadnoise = readnoise[j]
+                 fits[0].header.update('SENSITIV',sensitivity[j],'Sensitivity of 0 replaced from RON Table')  
 
          if tempreadnoise == 0:
              print "WARNING: the Read-out noise value could not be determined for: "+ str(TARGETSdatalist[i])
          # for CONVENTIONAL mode the fits-header 'GAIN'=0 and the real value for GAIN is in fits-header 'SENSITIVITY' [e/ADU]
          if fits[0].header['OUTPTAMP'] == 'Conventional':
-             try:
-                 fits[0].header.update('GAIN',fits[0].header['HIERARCH SENSITIVITY'], 'Replaced 0 with actual gain from SENSITIVITY')   
-             except:
-                 fits[0].header.update('GAIN',tempreadnoise, 'Replaced 0 with actual gain from SENSITIVITY')                  
+             fits[0].header.update('GAIN',fits[0].header['HIERARCH SENSITIVITY'], 'Replaced 0 with actual gain from SENSITIVITY')   
          # For EM mode the READNOISE and GAIN values equals the specification sheet values divided by the value given in the GAIN keyword. 
          # And if GAIN = 0 change it to GAIN = 1 and use the RON and GAIN from the specification sheet. Once changed to 1 it won't be changed again.
          if fits[0].header['OUTPTAMP'] == 'Electron Multiplying':
