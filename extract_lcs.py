@@ -166,10 +166,12 @@ if __name__=='__main__':
        if lc[0].header['OBJECT'] != 'QuickLook' and utcinhrs == 1:
           hjdtemp = lc[0].header['HJD']  
           hjdvalue = str(int(hjdtemp))+'.'+str(round((hjdtemp-int(hjdtemp)),9)).lstrip('0.')
+          print Fitsfiles[i], str(round(hjdtemp,8)), hjdvalue
           if i==0:
              startHJD = hjdvalue
           hjd.append(hjdvalue)
           #timeunit = 'HJD'
+          print hjd[i]
        else:
           hjd.append('')
        inseconds = float(utchrs)*60*60 + float(utcmins)*60 + float(utcsecs)

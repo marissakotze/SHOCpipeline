@@ -43,12 +43,12 @@ Scripts can only be run AFTER the data have been copied from the SHOC computer t
 
    mkdir <your subdirectory for reduction (per target/date or both)>
    cd <your subdirectory for reduction (per target/date or both)>
-   scp ccd'T'@ltsp.suth.saao.ac.za:/data/'T'in/shocn'X'/CCYY/MMDD/CCYYMMDD.'CubeNr(s)'.fits .
+   scp ccd'T'@ltsp.suth.saao.ac.za:/data/'T'in/'X'/CCYY/MMDD/*CCYYMMDD.'CubeNr(s)'.fits .
 
-   (using 'X' = awe/disbelief/horror and 'T' = 30/40/74 for 0.75m/1.0m/1.9m) 
+   (using 'X' = SHA/SHD/SHH for shocnawe/shocndisbelief/shocnhorror and 'T' = 30/40/74 for 0.75m/1.0m/1.9m) 
    The next answer is: Saaoccd'T'
 
-NOTE:	The required format for fits file names is:   CCYYMMDD.'CubeNr'.fits
+NOTE:	The required format for fits file names is:   SH*_CCYYMMDD.'CubeNr'.fits
 	The SHOCpipeline assumes this format and any deviation from it may result in errors.
 
 =================

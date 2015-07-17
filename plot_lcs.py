@@ -83,13 +83,13 @@ if __name__=='__main__':
                Xcoord.append(datalist[1][k])
                Ycoord.append(datalist[2][k])
                if len(flux)>1:
-                  ymax = min(flux)
-                  ymin = max(flux)
+                  #ymax = min(flux)
+                  #ymin = max(flux)
                   average = numpy.mean(flux)
                   averageaperture = numpy.mean(apertures)
                else:
-                  ymax = datalist[4][k-1]
-                  ymin = datalist[4][k-1]
+                  #ymax = datalist[4][k-1]
+                  #ymin = datalist[4][k-1]
                   average = datalist[4][k-1]
                   averageaperture = datalist[6][k-1]
                #lowerlimit.append(ymin+(ymin-ymax))
@@ -100,8 +100,8 @@ if __name__=='__main__':
                flux = []
                optimalaperture.append(averageaperture)
                apertures = []
-   ymax = min(flux)
-   ymin = max(flux)
+   #ymax = min(flux)
+   #ymin = max(flux)
    average = numpy.mean(flux)
    averageaperture = numpy.mean(apertures)
 #   lowerlimit.append(ymin+(ymin-ymax))

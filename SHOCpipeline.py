@@ -25,29 +25,40 @@ import os
 
 def changeSTARTtime(cubenumber):
    """ Promt the user for the start time of the cube if observations were externally triggered by GPS  """
-   # Get the GPS trigger Start date
-   GPSstartdate = raw_input("GPS (POP) start date [CCYY-MM-DD]:  ")
-   checkflag = 0
-   while checkflag == 0:
-      if GPSstartdate.count('-')==2:
-          splitGPSstartdate = GPSstartdate.split('-')
-          if float(splitGPSstartdate[0])<=9999 and float(splitGPSstartdate[1])<=12 and float(splitGPSstartdate[2])<=31 and len(GPSstartdate)==10:
-              checkflag = 1
-      if checkflag == 0:
-          GPSstartdate = raw_input("The format is:    CCYY-MM-DD   ")
-   # Get the GPS trigger Start time
-   GPSstarttime = raw_input("GPS (POP) start time in UT [HH:MM:SS.SSSSSSS]:  ")
-   checkflag = 0
-   while checkflag == 0:
-      if GPSstarttime.count(':')==2:
-          splitGPSstarttime = GPSstarttime.split(':')
-          if float(splitGPSstarttime[0])<24 and float(splitGPSstarttime[1])<60 and float(splitGPSstarttime[2])<60:
-               checkflag = 1
-      if checkflag == 0:
-          GPSstarttime = raw_input("The format is:    HH:MM:SS.SSSSSSS   ")
-   GPSstart = GPSstartdate+'T'+GPSstarttime
-   print "The 'FRAME' fits header will now be updated with the value:   "+GPSstart
-   fits[0].header.update('FRAME',GPSstart,'GPS start time of the cube')   
+   # Get the GPS start time as written by the new SHOC software
+   try:
+      GPSstarttimeheader = str(fits[0].header['GPSSTART'])
+      print "The 'GPSSTART' fits header is:   "+GPSstarttimeheader
+      GPSinfocorrect = raw_input("Is this correct? (Y/N):  ")
+   except:
+      GPSinfocorrect = 'N'
+
+   if GPSinfocorrect not in ('y','Y'):
+      # Get the GPS trigger Start date
+      GPSstartdate = raw_input("GPS (POP) start date [CCYY-MM-DD]:  ")
+      checkflag = 0
+      while checkflag == 0:
+         if GPSstartdate.count('-')==2:
+             splitGPSstartdate = GPSstartdate.split('-')
+             if float(splitGPSstartdate[0])<=9999 and float(splitGPSstartdate[1])<=12 and float(splitGPSstartdate[2])<=31 and len(GPSstartdate)==10:
+                 checkflag = 1
+         if checkflag == 0:
+             GPSstartdate = raw_input("The format is:    CCYY-MM-DD   ")
+      # Get the GPS trigger Start time
+      GPSstarttime = raw_input("GPS (POP) start time in UT [HH:MM:SS.SSSSSSS]:  ")
+      checkflag = 0
+      while checkflag == 0:
+         if GPSstarttime.count(':')==2:
+             splitGPSstarttime = GPSstarttime.split(':')
+             if float(splitGPSstarttime[0])<24 and float(splitGPSstarttime[1])<60 and float(splitGPSstarttime[2])<60:
+                  checkflag = 1
+         if checkflag == 0:
+             GPSstarttime = raw_input("The format is:    HH:MM:SS.SSSSSSS   ")
+      GPSstart = GPSstartdate+'T'+GPSstarttime
+      print "The 'FRAME' fits header will now be updated with the value:   "+GPSstart  
+   else:
+      GPSstart = GPSstarttimeheader
+   fits[0].header.update('FRAME',GPSstart,'GPS start time of the cube')
    # return values to main program 
    return GPSstart
 
@@ -396,6 +407,17 @@ if __name__=='__main__':
             sys.exit()
          vbincube.append(float(fits[0].header['VBIN']))
          hbincube.append(float(fits[0].header['HBIN']))
+         try: 
+            filterA = str(fits[0].header['POSA']).strip(' ')
+            filterB = str(fits[0].header['POSB']).strip(' ')
+            print "Filters are:   "+filterA+filterB
+            filtersOK = raw_input("Is this correct? [Y/N]")
+            if filtersOK in ('y','Y'):
+               filters = filterA+filterB
+            else:
+               filters = raw_input("Please supply filterA+filterB as a number (e.g. 18):  ")
+         except:
+            print "Filters are supplied as: "+filters
          dimcube.append(fits[0].header['SUBRECT'])
          EMmodetemp = fits[0].header['OUTPTAMP']
          if EMmodetemp == 'Conventional':  EMmode.append('CON')
@@ -419,11 +441,20 @@ if __name__=='__main__':
                     print "The timing for "+TARGETSdatalist[i]+" was triggered via the GPS. The user must supply the appropriate information for the FITS headers :"
                     print "######################################################################################################################################"
                     GPSstart = changeSTARTtime(cubenumber)
-                    exposure = raw_input("Supply the exposure time (POP repeat interval) in milliseconds [ms]:   ")
-                    while exposure.isdigit() == False:
-                       exposure = raw_input("Not a number. Supply the input in the correct format!:   ")
-                    exposuresec = float(exposure)/1000
-                    print "The 'EXPOSURE', 'ACT' and 'KCT' fits headers will now be updated with the value:   "+str(exposuresec)+ "   in seconds [s]"
+                    try:
+                       GPSintegrationtime = str(fits[0].header['GPS-INT'])
+                       print "The 'GPS-INT' fits header is:   "+GPSintegrationtime+"   in milliseconds [ms]"
+                       GPSintcorrect = raw_input("Is this correct? (Y/N):  ")
+                    except:
+                       GPSintcorrect = 'N'
+                    if GPSintcorrect not in ('Y','y'):
+                       exposure = raw_input("Supply the exposure time (POP repeat interval) in milliseconds [ms]:   ")                  
+                       while exposure.isdigit() == False:
+                          exposure = raw_input("Not a number. Supply the input in the correct format!:   ")
+                       exposuresec = float(exposure)/1000
+                       print "The 'EXPOSURE', 'ACT' and 'KCT' fits headers will now be updated with the value:   "+str(exposuresec)+ "   in seconds [s]"
+                    else:
+                       exposuresec = float(GPSintegrationtime)/1000
                     GPSinfo = open('GPSinfo'+cubenumber,'w')
                     print >> GPSinfo, GPSstart, exposuresec
                     GPSinfo.close()
@@ -471,14 +502,22 @@ if __name__=='__main__':
          # Determine theoreticel Read-out noise and populate the 'RON' header (and 'SENSITIVIY' if it is absent)
          for j in range(len(serialnr)): 
              try:
-                 if float(fits[0].header['HIERARCH SENSITIVITY'])== float(sensitivity[j]) and float(fits[0].header['SERNO'])== float(serialnr[j]):
+                 if float(fits[0].header['HIERARCH SENSITIVITY'])==float(sensitivity[j]) and float(fits[0].header['SERNO'])==float(serialnr[j]):
                      fits[0].header.update('RON',readnoise[j],'Read-out Noise')
                      tempreadnoise = readnoise[j]
+#                 elif str(fits[0].header['SERNO'])==serialnr[j] and str(fits[0].header['PREAMP'])==preAmp[j] and float(fits[0].header['READTIME'])==float(readtime[j]) and fits[0].header['OUTPTAMP']==mode[j]:
+                 elif str(fits[0].header['SERNO'])==serialnr[j] and float(fits[0].header['PREAMP'])==float(preAmp[j]) and float(fits[0].header['READTIME'])==float(readtime[j]) and fits[0].header['OUTPTAMP']==mode[j]:
+                     fits[0].header.update('RON',readnoise[j],'Read-out Noise') 
+                     tempreadnoise = readnoise[j]
+                     fits[0].header.update('SENSITIV',sensitivity[j],'Sensitivity of 0 replaced from RON Table')
+
              except:
-                 if str(fits[0].header['SERNO']) == serialnr[j] and str(fits[0].header['PREAMP'])== preAmp[j] and float(fits[0].header['READTIME']) == float(readtime[j]) and fits[0].header['OUTPTAMP'] == mode[j]:
+#                 if str(fits[0].header['SERNO'])==serialnr[j] and str(fits[0].header['PREAMP'])==preAmp[j] and float(fits[0].header['READTIME'])==float(readtime[j]) and fits[0].header['OUTPTAMP']==mode[j]:
+                 if str(fits[0].header['SERNO'])==serialnr[j] and float(fits[0].header['PREAMP'])==float(preAmp[j]) and float(fits[0].header['READTIME'])==float(readtime[j]) and fits[0].header['OUTPTAMP']==mode[j]:
                      fits[0].header.update('RON',readnoise[j],'Read-out Noise') 
                      tempreadnoise = readnoise[j]
                      fits[0].header.update('SENSITIV',sensitivity[j],'Sensitivity of 0 replaced from RON Table')  
+
 
          if tempreadnoise == 0:
              print "WARNING: the Read-out noise value could not be determined for: "+ str(TARGETSdatalist[i])
@@ -866,9 +905,9 @@ if __name__=='__main__':
             print >> SHOCscript, 'rm temp'
             # Make sub-folder for the Reduced fits images
             print >> SHOCscript, 'mkdir ReducedData'
-            print >> SHOCscript, 'mv *s*.'+cubenumber+'.0[0-4]*.fits ReducedData'
-            print >> SHOCscript, 'mv *s*.'+cubenumber+'.0[5-7]*.fits ReducedData'
-            print >> SHOCscript, 'mv *s*.'+cubenumber+'.0[8-9]*.fits ReducedData'
+            print >> SHOCscript, 'mv *s*.'+cubenumber+'.*[0-4].fits ReducedData'
+            print >> SHOCscript, 'mv *s*.'+cubenumber+'.*[5-7].fits ReducedData'
+            print >> SHOCscript, 'mv *s*.'+cubenumber+'.*[8-9].fits ReducedData'
             print >> SHOCscript, 'echo "########################################################################################"'
             print >> SHOCscript, 'echo "# Individual FITS files with corrected headers are saved in the ReducedData folder.    #"'
             if targetname != 'QuickLook':
@@ -891,17 +930,17 @@ if __name__=='__main__':
             print >> tooBIG, 'rm temp'
             # Make sub-folder for the Reduced fits images
             print >> tooBIG, 'mkdir ReducedData'
-            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[0-1]*.fits ReducedData'
-            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[2-3]*.fits ReducedData'
-            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[4-5]*.fits ReducedData'
-            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[6-7]*.fits ReducedData'
-            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.0[8-9]*.fits ReducedData'
+            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.*[0-1].fits ReducedData'
+            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.*[2-3].fits ReducedData'
+            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.*[4-5].fits ReducedData'
+            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.*[6-7].fits ReducedData'
+            print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.*[8-9].fits ReducedData'
             print >> tooBIG, 'mv '+flatstring+biasstring+'s*.'+cubenumber+'.*.fits ReducedData'
-            print >> tooBIG, 'rm *s*.'+cubenumber+'.0[0-1]*.fits'
-            print >> tooBIG, 'rm *s*.'+cubenumber+'.0[2-3]*.fits'
-            print >> tooBIG, 'rm *s*.'+cubenumber+'.0[4-5]*.fits'
-            print >> tooBIG, 'rm *s*.'+cubenumber+'.0[6-7]*.fits'
-            print >> tooBIG, 'rm *s*.'+cubenumber+'.0[8-9]*.fits'
+            print >> tooBIG, 'rm *s*.'+cubenumber+'.*[0-1].fits'
+            print >> tooBIG, 'rm *s*.'+cubenumber+'.*[2-3].fits'
+            print >> tooBIG, 'rm *s*.'+cubenumber+'.*[4-5].fits'
+            print >> tooBIG, 'rm *s*.'+cubenumber+'.*[6-7].fits'
+            print >> tooBIG, 'rm *s*.'+cubenumber+'.*[8-9].fits'
             print >> tooBIG, 'rm *s*.'+cubenumber+'.*.fits'
             print >> tooBIG, 'echo "########################################################################################"'
             print >> tooBIG, 'echo "# Individual FITS files with corrected headers are saved in the ReducedData folder.    #"'
@@ -974,11 +1013,11 @@ if __name__=='__main__':
             print "The commands contained therein can be run partially and/or repeated in the commandline."
             print "###########################################################################################"
          else:
-            print >> SHOCscript, 'mv s*.0[0-1]*.fits ReducedData'
-            print >> SHOCscript, 'mv s*.0[2-3]*.fits ReducedData'
-            print >> SHOCscript, 'mv s*.0[4-5]*.fits ReducedData'
-            print >> SHOCscript, 'mv s*.0[6-7]*.fits ReducedData'
-            print >> SHOCscript, 'mv s*.0[8-9]*.fits ReducedData'
+            print >> SHOCscript, 'mv s*.*[0-1].fits ReducedData'
+            print >> SHOCscript, 'mv s*.*[2-3].fits ReducedData'
+            print >> SHOCscript, 'mv s*.*[4-5].fits ReducedData'
+            print >> SHOCscript, 'mv s*.*[6-7].fits ReducedData'
+            print >> SHOCscript, 'mv s*.*[8-9].fits ReducedData'
             print >> SHOCscript, 'rm PHOTscript'
 
 SHOCscript.close()
