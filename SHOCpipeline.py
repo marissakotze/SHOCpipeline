@@ -9,7 +9,8 @@
 # IMPORT Python plug-ins
 import sys
 import numpy
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 import os
 
 
@@ -28,8 +29,9 @@ def changeSTARTtime(cubenumber):
    # Get the GPS start time as written by the new SHOC software
    try:
       GPSstarttimeheader = str(fits[0].header['GPSSTART'])
-      print "The 'GPSSTART' fits header is:   "+GPSstarttimeheader
-      GPSinfocorrect = raw_input("Is this correct? (Y/N):  ")
+      print "The 'GPSSTART' fits header is:   "+GPSstarttimeheader+"  [UTC]"
+      #GPSinfocorrect = raw_input("Is this correct? (Y/N):  ")
+      GPSinfocorrect = 'Y'
    except:
       GPSinfocorrect = 'N'
 
@@ -58,7 +60,7 @@ def changeSTARTtime(cubenumber):
       print "The 'FRAME' fits header will now be updated with the value:   "+GPSstart  
    else:
       GPSstart = GPSstarttimeheader
-   fits[0].header.update('FRAME',GPSstart,'GPS start time of the cube')
+   fits[0].header.set('FRAME',GPSstart,'GPS start time of the cube')
    # return values to main program 
    return GPSstart
 
@@ -411,7 +413,8 @@ if __name__=='__main__':
             filterA = str(fits[0].header['POSA']).strip(' ')
             filterB = str(fits[0].header['POSB']).strip(' ')
             print "Filters are:   "+filterA+filterB
-            filtersOK = raw_input("Is this correct? [Y/N]")
+            #filtersOK = raw_input("Is this correct? [Y/N]")
+            filtersOK = 'Y'
             if filtersOK in ('y','Y'):
                filters = filterA+filterB
             else:
@@ -423,16 +426,16 @@ if __name__=='__main__':
          if EMmodetemp == 'Conventional':  EMmode.append('CON')
          elif EMmodetemp == 'Electron Multiplying': EMmode.append('EM')
          # Populate the missing FITS headers
-         fits[0].header.update('OBJECT',targetname,'----Source information block------')
-         fits[0].header.update('RA_PNT',ra,'RA of source for Nominal pointing in deg')
-         fits[0].header.update('DEC_PNT',dec,'DEC of source for Nominal pointing in deg')
-         fits[0].header.update('RA',ra,'RA of source')
-         fits[0].header.update('DEC',dec,'DEC of source')
-         fits[0].header.update('EPOCH',epoch,'EPOCH')
-         fits[0].header.update('FILTER',filters,'WheelA WheelB')
-         fits[0].header.update('OBSERVAT',site,'Observatory')
-         fits[0].header.update('TELESCOP',telescope,'Telescope')
-         fits[0].header.update('INSTRUME',instrument,'Instrument')
+         fits[0].header.set('OBJECT',targetname,'----Source information block------')
+         fits[0].header.set('RA_PNT',ra,'RA of source for Nominal pointing in deg')
+         fits[0].header.set('DEC_PNT',dec,'DEC of source for Nominal pointing in deg')
+         fits[0].header.set('RA',ra,'RA of source')
+         fits[0].header.set('DEC',dec,'DEC of source')
+         fits[0].header.set('EPOCH',epoch,'EPOCH')
+         fits[0].header.set('FILTER',filters,'WheelA WheelB')
+         fits[0].header.set('OBSERVAT',site,'Observatory')
+         fits[0].header.set('TELESCOP',telescope,'Telescope')
+         fits[0].header.set('INSTRUME',instrument,'Instrument')
          # Correct TIMING headers for GPS triggered frames
          if fits[0].header['TRIGGER'] == 'External':
              if float(fits[0].header['EXPOSURE']) == 0.00001: 
@@ -444,7 +447,8 @@ if __name__=='__main__':
                     try:
                        GPSintegrationtime = str(fits[0].header['GPS-INT'])
                        print "The 'GPS-INT' fits header is:   "+GPSintegrationtime+"   in milliseconds [ms]"
-                       GPSintcorrect = raw_input("Is this correct? (Y/N):  ")
+                       #GPSintcorrect = raw_input("Is this correct? (Y/N):  ")
+                       GPSintcorrect = 'Y'
                     except:
                        GPSintcorrect = 'N'
                     if GPSintcorrect not in ('Y','y'):
@@ -460,11 +464,11 @@ if __name__=='__main__':
                     GPSinfo.close()
                  else:
                     exposuresec = increment
-                    fits[0].header.update('FRAME',GPSstart,'GPS start time of the cube')
-                 fits[0].header.update('EXPOSURE',exposuresec,'GPS repeat interval [s]')
-                 fits[0].header.update('ACT',exposuresec,'GPS repeat interval [s]')
-                 fits[0].header.update('KCT',exposuresec,'GPS repeat interval [s]')
-                 fits[0].header.update('TRIGGER','GPS','Trigger mode (External)')                 
+                    fits[0].header.set('FRAME',GPSstart,'GPS start time of the cube')
+                 fits[0].header.set('EXPOSURE',exposuresec,'GPS repeat interval [s]')
+                 fits[0].header.set('ACT',exposuresec,'GPS repeat interval [s]')
+                 fits[0].header.set('KCT',exposuresec,'GPS repeat interval [s]')
+                 fits[0].header.set('TRIGGER','GPS','Trigger mode (External)')                 
              else:
                  print "###############################################################################################################################################"
                  print " The timing for "+TARGETSdatalist[i]+" appears to have been triggered externally, but the timing mode that was used is not currently supported."
@@ -473,7 +477,7 @@ if __name__=='__main__':
                  sys.exit()
          # Correct TIMING headers for Internally triggered frames
          elif fits[0].header['TRIGGER'] == 'Internal':
-             fits[0].header.update('FRAME',fits[0].header['FRAME'],'End of 1st Exposure in Data Cube')
+             fits[0].header.set('FRAME',fits[0].header['FRAME'],'End of 1st Exposure in Data Cube')
          # Correct TIMING headers for GPS triggered start with subsequent Internal triggering of frames
          elif fits[0].header['TRIGGER'] == 'External Start':
              if GPSflag == 0:
@@ -487,9 +491,9 @@ if __name__=='__main__':
                 GPSinfo.close()
              else:
                 exposureseconds = increment
-                fits[0].header.update('FRAME',GPSstart,'GPS start time of the cube')
-             fits[0].header.update('ACT',exposureseconds,'Integration cycle time [s]')
-             fits[0].header.update('KCT',exposureseconds,'Kinetic cycle time [s]')
+                fits[0].header.set('FRAME',GPSstart,'GPS start time of the cube')
+             fits[0].header.set('ACT',exposureseconds,'Integration cycle time [s]')
+             fits[0].header.set('KCT',exposureseconds,'Kinetic cycle time [s]')
          # Warn user if unsupported triggering mode was used and exit
          elif fits[0].header['TRIGGER'] != 'GPS':
              print "######################################################################################"
@@ -503,20 +507,20 @@ if __name__=='__main__':
          for j in range(len(serialnr)): 
              try:
                  if float(fits[0].header['HIERARCH SENSITIVITY'])==float(sensitivity[j]) and float(fits[0].header['SERNO'])==float(serialnr[j]):
-                     fits[0].header.update('RON',readnoise[j],'Read-out Noise')
+                     fits[0].header.set('RON',readnoise[j],'Read-out Noise')
                      tempreadnoise = readnoise[j]
 #                 elif str(fits[0].header['SERNO'])==serialnr[j] and str(fits[0].header['PREAMP'])==preAmp[j] and float(fits[0].header['READTIME'])==float(readtime[j]) and fits[0].header['OUTPTAMP']==mode[j]:
                  elif str(fits[0].header['SERNO'])==serialnr[j] and float(fits[0].header['PREAMP'])==float(preAmp[j]) and float(fits[0].header['READTIME'])==float(readtime[j]) and fits[0].header['OUTPTAMP']==mode[j]:
-                     fits[0].header.update('RON',readnoise[j],'Read-out Noise') 
+                     fits[0].header.set('RON',readnoise[j],'Read-out Noise') 
                      tempreadnoise = readnoise[j]
-                     fits[0].header.update('SENSITIV',sensitivity[j],'Sensitivity of 0 replaced from RON Table')
+                     fits[0].header.set('SENSITIV',sensitivity[j],'Sensitivity of 0 replaced from RON Table')
 
              except:
 #                 if str(fits[0].header['SERNO'])==serialnr[j] and str(fits[0].header['PREAMP'])==preAmp[j] and float(fits[0].header['READTIME'])==float(readtime[j]) and fits[0].header['OUTPTAMP']==mode[j]:
                  if str(fits[0].header['SERNO'])==serialnr[j] and float(fits[0].header['PREAMP'])==float(preAmp[j]) and float(fits[0].header['READTIME'])==float(readtime[j]) and fits[0].header['OUTPTAMP']==mode[j]:
-                     fits[0].header.update('RON',readnoise[j],'Read-out Noise') 
+                     fits[0].header.set('RON',readnoise[j],'Read-out Noise') 
                      tempreadnoise = readnoise[j]
-                     fits[0].header.update('SENSITIV',sensitivity[j],'Sensitivity of 0 replaced from RON Table')  
+                     fits[0].header.set('SENSITIV',sensitivity[j],'Sensitivity of 0 replaced from RON Table')  
 
 
          if tempreadnoise == 0:
@@ -524,17 +528,17 @@ if __name__=='__main__':
          # for CONVENTIONAL mode the fits-header 'GAIN'=0 and the real value for GAIN is in fits-header 'SENSITIVITY' [e/ADU]
          if fits[0].header['OUTPTAMP'] == 'Conventional':
              try:
-                 fits[0].header.update('GAIN',fits[0].header['HIERARCH SENSITIVITY'], 'Replaced 0 with actual gain from SENSITIVITY')   
+                 fits[0].header.set('GAIN',fits[0].header['HIERARCH SENSITIVITY'], 'Replaced 0 with actual gain from SENSITIVITY')   
              except:
-                 fits[0].header.update('GAIN',tempreadnoise, 'Replaced 0 with actual gain from SENSITIVITY')                  
+                 fits[0].header.set('GAIN',tempreadnoise, 'Replaced 0 with actual gain from SENSITIVITY')                  
          # For EM mode the READNOISE and GAIN values equals the specification sheet values divided by the value given in the GAIN keyword. 
          # And if GAIN = 0 change it to GAIN = 1 and use the RON and GAIN from the specification sheet. Once changed to 1 it won't be changed again.
          if fits[0].header['OUTPTAMP'] == 'Electron Multiplying':
              if float(fits[0].header['GAIN']) == 0:
-                 fits[0].header.update('GAIN','1', 'Replaced value of '+str(fits[0].header['GAIN']))
+                 fits[0].header.set('GAIN','1', 'Replaced value of '+str(fits[0].header['GAIN']))
              elif float(fits[0].header['GAIN']) > 1:
-                 fits[0].header.update('RON',float(tempreadnoise)/float(fits[0].header['GAIN']),'Read-out Noise')
-                 fits[0].header.update('GAIN',float(fits[0].header['GAIN'])/float(fits[0].header['GAIN']), 'Replaced value of '+str(fits[0].header['GAIN']))
+                 fits[0].header.set('RON',float(tempreadnoise)/float(fits[0].header['GAIN']),'Read-out Noise')
+                 fits[0].header.set('GAIN',float(fits[0].header['GAIN'])/float(fits[0].header['GAIN']), 'Replaced value of '+str(fits[0].header['GAIN']))
 
          # SAVE the updated FITS cube if it can, otherwise set up an alternate SHOCscript route (tooBIG)
          try:
@@ -587,14 +591,14 @@ if __name__=='__main__':
          vbinflattemp = float(fits[0].header['VBIN'])
          hbinflattemp = float(fits[0].header['HBIN'])
          dimflat.append(fits[0].header['SUBRECT'])
-         fits[0].header.update('OBJECT','SKYFLAT','----Source information block------')
-         fits[0].header.update('RA_PNT','00:00:00','RA of source for Nominal pointing in deg')
-         fits[0].header.update('DEC_PNT','00:00:00','DEC of source for Nominal pointing in deg')
-         fits[0].header.update('EPOCH','0','EPOCH')
-         fits[0].header.update('FILTER',filters,'WheelA WheelB')
-         fits[0].header.update('OBSERVAT',site,'Observatory')
-         fits[0].header.update('TELESCOP',telescope,'Telescope')
-         fits[0].header.update('INSTRUME',instrument,'Instrument')
+         fits[0].header.set('OBJECT','SKYFLAT','----Source information block------')
+         fits[0].header.set('RA_PNT','00:00:00','RA of source for Nominal pointing in deg')
+         fits[0].header.set('DEC_PNT','00:00:00','DEC of source for Nominal pointing in deg')
+         fits[0].header.set('EPOCH','0','EPOCH')
+         fits[0].header.set('FILTER',filters,'WheelA WheelB')
+         fits[0].header.set('OBSERVAT',site,'Observatory')
+         fits[0].header.set('TELESCOP',telescope,'Telescope')
+         fits[0].header.set('INSTRUME',instrument,'Instrument')
          # update fits file
          fits.flush()
          fits.close()
@@ -660,14 +664,14 @@ if __name__=='__main__':
          EMmodebiastemp = fits[0].header['OUTPTAMP']
          if EMmodebiastemp == 'Conventional':  EMmodebiastemplist = 'CON'
          elif EMmodebiastemp == 'Electron Multiplying': EMmodebiastemplist = 'EM'
-         fits[0].header.update('OBJECT','BIAS','----Source information block------')
-         fits[0].header.update('RA_PNT','00:00:00','RA of source for Nominal pointing in deg')
-         fits[0].header.update('DEC_PNT','00:00:00','DEC of source for Nominal pointing in deg')
-         fits[0].header.update('EPOCH','0','EPOCH')
-         fits[0].header.update('FILTER','N.A.','WheelA WheelB')
-         fits[0].header.update('OBSERVAT',site,'Observatory')
-         fits[0].header.update('TELESCOP',telescope,'Telescope')
-         fits[0].header.update('INSTRUME',instrument,'Instrument')
+         fits[0].header.set('OBJECT','BIAS','----Source information block------')
+         fits[0].header.set('RA_PNT','00:00:00','RA of source for Nominal pointing in deg')
+         fits[0].header.set('DEC_PNT','00:00:00','DEC of source for Nominal pointing in deg')
+         fits[0].header.set('EPOCH','0','EPOCH')
+         fits[0].header.set('FILTER','N.A.','WheelA WheelB')
+         fits[0].header.set('OBSERVAT',site,'Observatory')
+         fits[0].header.set('TELESCOP',telescope,'Telescope')
+         fits[0].header.set('INSTRUME',instrument,'Instrument')
          # update fits file
          fits.flush()
          fits.close()
@@ -910,16 +914,18 @@ if __name__=='__main__':
             print >> SHOCscript, 'mv *s*.'+cubenumber+'.*[8-9].fits ReducedData'
             print >> SHOCscript, 'echo "########################################################################################"'
             print >> SHOCscript, 'echo "# Individual FITS files with corrected headers are saved in the ReducedData folder.    #"'
-            if targetname != 'QuickLook':
-               print >> SHOCscript, 'echo "# '+TARGETSdatalist[j]+' will now be deleted, but may be retrieved by running: ./COPYscript #"'
-            else:
-               print >> SHOCscript, 'echo "# '+TARGETSdatalist[j]+' will now be deleted                                                #"'
+            #if targetname != 'QuickLook':
+            #   print >> SHOCscript, 'echo "# '+TARGETSdatalist[j]+' will now be deleted, but may be retrieved by running: ./COPYscript #"'
+            #else:
+            #   print >> SHOCscript, 'echo "# '+TARGETSdatalist[j]+' will now be deleted                                                #"'
             print >> SHOCscript, 'echo "########################################################################################"'
             if targetname != 'QuickLook':
-               print >> COPYscript, 'scp ccd'+telescope.rstrip('in')+'@ltsp.suth.saao.ac.za:/data/'+telescope+'/'+instrument+'/'+observationdate[0:4]+'/'+observationdate[4:8]+'/'+TARGETSdatalist[j]+' .'
+               print >> COPYscript, 'scp ccd'+telescope.rstrip('in')+'@astro.cape.saao.ac.za:/data/'+telescope+'/sh?/'+observationdate[0:4]+'/'+observationdate[4:8]+'/'+TARGETSdatalist[j]+' .'
+               print >> COPYscript, '# where X = 30/40/74 for 0.75m/1.0m/1.9m and password is = Saaoccd<X>'
             else:
-               print >> COPYscript, 'scp ccdX@ltsp.suth.saao.ac.za:/data/Xin/shocnY/'+observationdate[0:4]+'/'+observationdate[4:8]+'/'+TARGETSdatalist[j]+' .'
+               print >> COPYscript, 'scp ccdX@astro.cape.saao.ac.za:/data/Xin/sh?/'+observationdate[0:4]+'/'+observationdate[4:8]+'/'+TARGETSdatalist[j]+' .'
                print >> COPYscript, '# where X = 30/40/74 for 0.75m/1.0m/1.9m and Y = awe/disbelief/horror'
+               print >> COPYscript, '# where X = 30/40/74 for 0.75m/1.0m/1.9m and password is = Saaoccd<X>'
             print >> SHOCscript, 'rm '+ TARGETSdatalist[j]
             print >> SHOCscript, "#----------------------------------------------------------------"
          # If the cube is > 2GB it is handled via an alternative route (tooBIG script)
@@ -944,16 +950,18 @@ if __name__=='__main__':
             print >> tooBIG, 'rm *s*.'+cubenumber+'.*.fits'
             print >> tooBIG, 'echo "########################################################################################"'
             print >> tooBIG, 'echo "# Individual FITS files with corrected headers are saved in the ReducedData folder.    #"'
-            if targetname != 'QuickLook':
-               print >> tooBIG, 'echo "# '+TARGETSdatalist[j]+' will now be deleted, but may be retrieved by running: ./COPYscript #"'
-            else:
-               print >> tooBIG, 'echo "# '+TARGETSdatalist[j]+' will now be deleted                                                #"'
+            #if targetname != 'QuickLook':
+            #   print >> tooBIG, 'echo "# '+TARGETSdatalist[j]+' will now be deleted, but may be retrieved by running: ./COPYscript #"'
+            #else:
+            #   print >> tooBIG, 'echo "# '+TARGETSdatalist[j]+' will now be deleted                                                #"'
             print >> tooBIG, 'echo "########################################################################################"'
             if targetname != 'QuickLook':
-               print >> COPYscript, 'scp ccd'+telescope.rstrip('in')+'@ltsp.suth.saao.ac.za:/data/'+telescope+'/'+instrument+'/'+observationdate[0:4]+'/'+observationdate[4:8]+'/'+TARGETSdatalist[j]+' .'
+               print >> COPYscript, 'scp ccd'+telescope.rstrip('in')+'@astro.cape.saao.ac.za:/data/'+telescope+'/sh?/'+observationdate[0:4]+'/'+observationdate[4:8]+'/'+TARGETSdatalist[j]+' .'
+               print >> COPYscript, '# where X = 30/40/74 for 0.75m/1.0m/1.9m and password is = Saaoccd<X>'
             else:
-               print >> COPYscript, 'scp ccdX@ltsp.suth.saao.ac.za:/data/Xin/shocnY/'+observationdate[0:4]+'/'+observationdate[4:8]+'/'+TARGETSdatalist[j]+' .'
+               print >> COPYscript, 'scp ccdX@astro.cape.saao.ac.za:/data/Xin/sh?/'+observationdate[0:4]+'/'+observationdate[4:8]+'/'+TARGETSdatalist[j]+' .'
                print >> COPYscript, '# where X = 30/40/74 for 0.75m/1.0m/1.9m and Y = awe/disbelief/horror'
+               print >> COPYscript, '# password is = Saaoccd<X>'
             print >> tooBIG, 'rm '+ TARGETSdatalist[j]
             print >> tooBIG, "#----------------------------------------------------------------"
             print >> tooBIG, "../Photometry.py reduced"+cubenumber+" N"

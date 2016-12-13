@@ -32,7 +32,7 @@ numberfilters = len(FILTERlist)
 
 datalist = numpy.loadtxt(TARGETSfile,dtype="str")
 numberfiles = len(datalist)
-basefilename = int(float(datalist[0].split('.')[0]))
+basefilename = datalist[0].split('.')[0]
 startnumber = int(float(datalist[0].split('.')[1]))
 cycles = int(numberfiles/numberfilters)
 
@@ -40,7 +40,7 @@ filterforfile = []
 filenumbers = []
 for i in range(cycles):
    for j in range(len(FILTERlist)):
-      filenumber = str(basefilename)+'.'+str(startnumber+j+numberfilters*i)+'.fits'
+      filenumber = str(basefilename)+'.0'+str(startnumber+j+numberfilters*i)+'.fits'
       print filenumber, FILTERlist[j]
       filenumbers.append(filenumber)
       filterforfile.append(FILTERlist[j])

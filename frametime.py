@@ -15,7 +15,8 @@
 
 import sys
 import numpy
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 import os
 
 #################
@@ -55,7 +56,10 @@ if __name__=='__main__':
    # Determine the timing values at the start of the data cube
    fits = pyfits.open(filenamelist[0])
    t0 = fits[0].header['FRAME']
-   exp = fits[0].header['ACT']
+   try:
+      exp = fits[0].header['ACT']
+   except:
+      exp = fits[0].header['EXPOSURE'] 
    trigger = fits[0].header['TRIGGER']
    date = t0.split('T')
    field0 = date[0].split('-')
@@ -109,9 +113,9 @@ if __name__=='__main__':
       th = t/3600.0
 
       # Write the correct date
-      fixedfits[0].header.update('DATE-OBS',date[0],'Observation Date (CCYY:MM:DD)')
+      fixedfits[0].header.set('DATE-OBS',date[0],'Observation Date (CCYY:MM:DD)')
       # Write the correct time in hours since midnight of the DATE-OBS
-      fixedfits[0].header.update('UTC-OBS',str(th),'Observation Time (UTC) [hrs] from DATE-OBS 0hrs')
+      fixedfits[0].header.set('UTC-OBS',str(th),'Observation Time (UTC) [hrs] from DATE-OBS 0hrs')
       # update fits file
       fixedfits.flush()
 

@@ -29,6 +29,11 @@ if __name__=='__main__':
    print >> MULTIscript, '#! /bin/bash'
    coordinates = open('coordinates_'+file,'w')
 
+   # Clear previous plots
+   os.system('rm MULTIgnuplotscript*'+file)
+   os.system('rm Lightcurves_*_'+file+'.eps')
+
+
    star = []
    star.append(int(datalist[0][0]))
    for i in range(1,len(datalist[0])):

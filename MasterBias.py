@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 import sys
 import os
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 
 if __name__=='__main__':
    _nargs = len(sys.argv)
@@ -33,7 +34,7 @@ immatch.imcombine.mode = "h"
 immatch.imcombine()
 
 fits = pyfits.open(masterbias,mode='update')
-fits[0].header.update('OBJECT',str(file).replace('bias',' ')+"MASTER BIAS")
+fits[0].header.set('OBJECT',str(file).replace('bias',' ')+"MASTER BIAS")
 fits.flush()
 
 os.system('mv '+masterbias+' '+savedmasterbias)

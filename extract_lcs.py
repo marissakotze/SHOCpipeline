@@ -6,7 +6,8 @@
 
 import sys
 import numpy
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 import os
 import datetime
 
@@ -171,7 +172,7 @@ if __name__=='__main__':
              startHJD = hjdvalue
           hjd.append(hjdvalue)
           #timeunit = 'HJD'
-          print hjd[i]
+          #print hjd[i]
        else:
           hjd.append('')
        inseconds = float(utchrs)*60*60 + float(utcmins)*60 + float(utcsecs)

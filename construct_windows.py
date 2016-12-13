@@ -6,7 +6,8 @@
 
 import sys
 import numpy
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 import os
 
 #################

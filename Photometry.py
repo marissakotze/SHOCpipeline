@@ -81,30 +81,59 @@ if __name__=='__main__':
    cubenumber = str(fitslist[0].split('.')[1])
    startFITS = str(fitslist[0])
 
-   # Allow the user to determine a star-free region on their initial image
-   print "###########################################################################"
-   print "#  Determine the parameters [x1:x2,y1:y2] for a box without stars         #"
-   print "#  from the image that has been opened for you in DS9 to help you.        #"
-   print "#                                                                         #"
-   print "#  The box is defined by its four corners:                                #"
-   print "#                                                                         #"
-   print "#                  (x1,y2)_________________(x2,y2)                        #"
-   print "#                        |                 |                              #"
-   print "#                  (x1,y1)_________________(x2,y1)                        #"
-   print "#                                                                         #"
-   print "#  It will help you to determine the standard deviation of the background #"
-   print "#  which are required inputs for the IRAF tasks 'daofind' and 'phot'      #"
-   print "###########################################################################"
    if dumpdata in ('N','n'):
       os.system("ds9 "+fitslist[0]+"&")
-   skybox = raw_input("Enter coordinates of a box without stars in the format [x1:x2,y1:y2] : ") 
-   if skybox != '':  
-      while skybox.count('[')<1 or skybox.count(']')<1 or skybox.count(':')<2 or skybox.count(',')<1:
-         skybox = raw_input("The correct format is [x1:x2,y1:y2] , with all the brackets and punctuation included. Please try again: ")
-   print >> inputs, skybox
-   # Determine the standard deviation in the backgound
-   stddev = imutil.imstat(images = fitslist[0]+skybox , mode = "h", fields = 'image,mean,stddev',Stdout=1)[1].split()[-1]
-   print 'STDDEV in the background is :', stddev
+
+   # determine if a 'windows' file was provided with the target and comparisons' X and Y coordinates in 2 column ASCII format
+   try:
+      coordinates = numpy.loadtxt('windows',dtype="float",unpack=True)
+      Xcoord = coordinates[0]
+      Ycoord = coordinates[1] 
+      print "###################################################################################"
+      print "# Coordinates are based on the following positions supplied in the 'windows' file #"
+      print "###################################################################################"
+      os.system('cat windows')
+      print "###################################################################################"
+      print "# Coordinates specified in this way are only relevant if observations were GUIDED #"
+      print "###################################################################################"
+      usewindow = raw_input("Is this correct? (Y/N) :   ")
+      usewindow = checkYNinput(usewindow)
+      if usewindow in ('Y','y'):
+         fromwindows = 1
+         print >> inputs, 'Y'
+      else:
+         fromwindows = 0      
+         print >> inputs, 'N' 
+      stddev = 3
+   except IOError, e:
+      fromwindows = 0
+
+   if fromwindows == 0:
+
+      # Allow the user to determine a star-free region on their initial image
+      print "###########################################################################"
+      print "#  Determine the parameters [x1:x2,y1:y2] for a box without stars         #"
+      print "#  from the image that has been opened for you in DS9 to help you.        #"
+      print "#                                                                         #"
+      print "#  The box is defined by its four corners:                                #"
+      print "#                                                                         #"
+      print "#                  (x1,y2)_________________(x2,y2)                        #"
+      print "#                        |                 |                              #"
+      print "#                  (x1,y1)_________________(x2,y1)                        #"
+      print "#                                                                         #"
+      print "#  It will help you to determine the standard deviation of the background #"
+      print "#  which are required inputs for the IRAF tasks 'daofind' and 'phot'      #"
+      print "###########################################################################"
+
+      skybox = raw_input("Enter coordinates of a box without stars in the format [x1:x2,y1:y2] : ") 
+      if skybox != '':  
+         while skybox.count('[')<1 or skybox.count(']')<1 or skybox.count(':')<2 or skybox.count(',')<1:
+            skybox = raw_input("The correct format is [x1:x2,y1:y2] , with all the brackets and punctuation included. Please try again: ")
+      print >> inputs, skybox
+      # Determine the standard deviation in the backgound
+      stddev = imutil.imstat(images = fitslist[0]+skybox , mode = "h", fields = 'image,mean,stddev',Stdout=1)[1].split()[-1]
+      print 'STDDEV in the background is :', stddev
+
    
    # Allow the user to accept the values of the parameter file, revert to default or exit to adjust the file before runnning PHOTscript
    print "###########################################################################"
@@ -158,28 +187,7 @@ if __name__=='__main__':
    else:
       fwhm = 3
 
-# determine if a 'windows' file was provided with the target and comparisons' X and Y coordinates in 2 column ASCII format
-try:
-    coordinates = numpy.loadtxt('windows',dtype="float",unpack=True)
-    Xcoord = coordinates[0]
-    Ycoord = coordinates[1] 
-    print "###################################################################################"
-    print "# Coordinates are based on the following positions supplied in the 'windows' file #"
-    print "###################################################################################"
-    os.system('cat windows')
-    print "###################################################################################"
-    print "# Coordinates specified in this way are only relevant if observations were GUIDED #"
-    print "###################################################################################"
-    usewindow = raw_input("Is this correct? (Y/N) :   ")
-    usewindow = checkYNinput(usewindow)
-    if usewindow in ('Y','y'):
-       fromwindows = 1
-       print >> inputs, 'Y'
-    else:
-       fromwindows = 0      
-       print >> inputs, 'N' 
-except IOError, e:
-    fromwindows = 0
+
 
 ######################
 ######################
@@ -225,7 +233,8 @@ if fromwindows == 1:
 else:
     significance = raw_input("Required significance level (n) for detection (default:10) ?  :  ")
     if significance not in (''):
-        significance = checkNUMBERinput(significance)
+        #significance = checkNUMBERinput(significance)
+        significance = significance
     else:
         significance = 10
     print >> inputs, significance

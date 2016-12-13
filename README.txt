@@ -1,0 +1,162 @@
+Description of the SHOC data reduction pipeline is available in the Manual at: 
+
+   http://shoc.saao.ac.za/Pipeline/SHOCpipeline.pdf
+
+   It is required reading for all those who wish to use this pipeline, before proceeding further.
+
+=============================================================================================================================================
+RECIPE for running the SHOC data reduction pipeline:
+=============================================================================================================================================
+
+-  IF you are at the TELESCOPE and you want to run the SHOC data reduction scripts, 
+   please sign in as ccd30/ccd40/ccd74 on ASTRO.CAPE and create your own directory for your data reductions. 
+   (You should move/copy it to wherever you want to permanently store it, after the completion of your observing run.)
+
+   ssh -XC ccd'T'@astro.cape.saao.ac.za			(but from a remote location, you should first:  ssh -XC ccd'T'@ssh.saao.ac.za)
+   (where 'T' = 30/40/74 for 0.75m/1.0m/1.9m and the answer to the next question is: Saaoccd'T')
+
+-  IF you have an account on ASTRO.CAPE (not SALTASTRO but the old SAAOASTRO), 
+   you can sign in and extract and run the scripts in your home directory.
+
+-  Create an 'iraf' directory in your own/home directory and run 'mkiraf' in it:
+   
+   mkdir iraf
+   cd iraf
+   mkiraf
+   (choose 'xgterm')
+
+-  Go back up into your own/home directory and download the SHOC data reduction scripts by typing in the command line:
+
+   cd ../
+   rm SHOCpipeline.tar     (only needed if you've downloaded it before)
+   wget 'http://shoc.saao.ac.za/Pipeline/SHOCpipeline.tar'
+
+-  All the PYTHON scripts and supporting data files are included in this TAR file. 
+   Extract it in your own directory in /home/ccd'T'/ or your home directory on the ASTRO server:
+
+   tar -xvf SHOCpipeline.tar
+
+SET CORRECT PYTHON environment:  (if you don't do this, the code won't run)
+===============================
+
+-  conda config --add channels http://ssb.stsci.edu/astroconda
+
+-  conda create -n shoc python=2.7 numpy astropy pyraf
+
+-  source activate shoc
+
+DATA TRANSFER: 
+==============
+
+Follow instructions in: 
+https://topswiki.saao.ac.za/index.php/SHOC#Data_Transfer
+
+-  The user should copy the relevant data from the instrument/server storage directories to a subdirectory in the user's own directory: 
+
+   mkdir <your subdirectory for reduction (per target/date or both)>
+   cd <your subdirectory for reduction (per target/date or both)>
+
+NOTE:	The required format for fits file names is:   SH*_CCYYMMDD.'CubeNr'.fits
+	The SHOCpipeline assumes this format and any deviation from it may result in errors.
+
+=================
+For a quick look: (QuickLook.py)
+=================
+
+It automatically runs the full PHOTOMETRY pipeline (and subsequent LINUX scripts) for the user, with minimal user intervention required.
+It skips bias-correction, flat-fielding, JD, HJD and Airmass calculations to produce 'quick-and-dirty' raw lightcurves to give the user an indication of variability.
+
+-  Run the following PER target, binning and filter (which should reside in a subdirectory in the user's directory):
+
+   ../QuickLook.py <targetlist>           (if want to combine a few files in the lightcurve -> place their names in a text file <targetlist>)
+   ../QuickLook.py <fitsfilename>         (if there is only one cube you want to look at -> enter its name directly)
+
+   and answer the questions when prompted to do so.
+
+
+NOTE:   You will be prompted to select an appropriate star-free region and a significance level (n) required for detection. 
+        This ONLY sets the THRESHOLD above which sources are considered detected (n-sigma: significance x STDDEV). 
+        (During photometry the sky subtraction uses an annular region around a source, the size of which is specified in 'parameters')
+However:
+        The user may also specify the location (Xcoordinate Ycoordinate) of the stars they wish to extract in a text file named 'windows'
+
+
+OR
+
+======================================================
+Run the full functionality of the PHOTOMETRY pipeline: (SHOCpipeline.py)
+======================================================
+
+-  Run the following PER target, binning and filter (which should reside in a subdirectory in the user's directory):
+
+   ../SHOCpipeline.py
+
+   and answer the questions when prompted to do so. 
+
+Note: Custom binning is currently not supported for flat and bias corrections.
+
+Currently this PYHTON script sets up the following LINUX scripts (which you can hack to run partially):
+----------------------------------------------------------------
+
+-  A LINUX script  that needs to be executed from the command-line to do the PRE-REDUCTIONS 
+   (corrects fits headers, splits the data cubes, makes master flats and biases, flat-fields and bias-corrects science frames):
+
+   ./SHOCscript
+
+-  Another LINUX script that needs to be executed from the command-line to do the PHOTOMETRY 
+   (identification of sources, aperture corrected photometry):
+
+   ./PHOTscript
+
+   If you want to change parameters for the photometry, you should change it in the 'parameters' file OR 
+   if the ones you wish to change are not there, you'll need to hack the PYTHON script (Photometry.py).
+
+-  And also a LINUX script that needs to be executed from the command-line to do the PLOTTING 
+   (lightcurve extraction and plotting of raw data):
+
+   ./PLOTscript
+
+The PHOTOMETRY pipeline produces:
+--------------------------------
+
+-  RAW data for all stars in ASCII files named:     
+     lightcurves_based_on_**
+
+-  which are plotted in:    
+     Lightcurves_*_lightcurves_based_on_**.eps
+
+   The plots show the number and coordinates of each star, so it should be easy to identify your target and choose suitable comparisons.
+
+-  Coordinates for all extracted sources are also displayed on-screen and stored in:
+     coordinates_lightcurves_based_on_**
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+===============================================================================
+If you want to extract the DIFFERENTIAL lightcurve for your target, you can run:
+===============================================================================
+
+   ../plot_differential_lcs.py
+
+and answer the questions when prompted to do so.
+
+It produces:
+
+-  DIFFERENTIAL lightcurves of the extracted stars in an ASCII file:     
+     lightcurves_based_on_**_diffLC_star_<nr>
+
+-  which are combined into a single file:
+     differential_lightcurves_based_on_*
+
+-  and plotted in:    
+     Lightcurves_**_differential_lightcurves_based_on_**.eps
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+===========================================================================================================
+To set up the lists of files per filter if you ran a repeating sequence with multiple filters, you can run:
+===========================================================================================================
+
+   ./multifilter.py
+
+Thereafter the pipeline can be run in the usual way.
+
+====================================================================================================================================================

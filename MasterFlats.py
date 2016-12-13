@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 import sys
 import os
-import pyfits
+#import pyfits
+from astropy.io import fits as pyfits
 
 if __name__=='__main__':
    _nargs = len(sys.argv)
